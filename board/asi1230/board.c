@@ -93,23 +93,6 @@ static void data_macro_config(u32 macro_num, u32 phy_num, u32 rd_dqs_cs0,
 		(DATA0_REG_PHY0_DLL_LOCK_DIFF_0 + base));
 }
 
-int is_ddr3(void)
-{
-	/*
-	 * PG1.0 by default uses DDR2 &  PG2.1 uses DDR3
-	 * To use PG2.1 and DDR2 enable #define CONFIG_TI814X_EVM_DDR2
-	 * in "include/configs/ti8148_evm.h"
-	 */
-	if (PG2_1 == get_cpu_rev())
-		#ifdef CONFIG_TI814X_EVM_DDR2
-			return 0;
-		#else
-			return 1;
-		#endif
-	else
-		return 0;
-}
-
 #ifdef CONFIG_SETUP_PLL
 static void pll_config(u32, u32, u32, u32, u32);
 #if 0
@@ -127,8 +110,6 @@ static void usb_pll_config(void);
 #endif
 
 static void unlock_pll_control_mmr(void);
-static void cpsw_pad_config(void);
-static void nor_pad_config_mux(void);
 /*
  * spinning delay to use before udelay works
  */
@@ -147,8 +128,6 @@ int board_init(void)
 
 	/* Do the required pin-muxing before modules are setup */
 	set_muxconf_regs();
-
-	nor_pad_config_mux();
 
 	/* setup RMII_REFCLK to be sourced from audio_pll */
 	__raw_writel(0x4, RMII_REFCLK_SRC);
@@ -177,19 +156,6 @@ int board_init(void)
 	gd->bd->bi_boot_params = PHYS_DRAM_1 + 0x100;
 	gpmc_init();
 
-#ifndef CONFIG_NOR
-	/* GPMC will come up with default buswidth configuration,
-    * we will override it based on BW pin CONFIG_STATUS register.
-    * This is currently required only for NAND/NOR to
-    * support 8/16 bit NAND/NOR part. Also we always use chipselect 0
-    * for NAND/NOR boot.
-    *
-    * NOTE: This code is DM8168 EVM specific, hence we are using CS 0.
-    * Also, even for other boot modes user is expected to
-    * on/off the BW pin on the EVM.
-    */
-	gpmc_set_cs_buswidth(0, get_sysboot_bw());
-#endif
 	return 0;
 }
 
@@ -217,246 +183,9 @@ int misc_init_r (void)
 		"TI8148_EVM prompt if 2nd stage is already flashed\n");
 	#endif
 
-	#ifdef CONFIG_TI814X_ASCIIART
-	int i = 0, j = 0;
-	char ti814x[28][54] = {
-"                          .:;rrr;;.                   ",
-"                    ,5#@@@@#####@@@@@@#2,             ",
-"                 ,A@@@hi;;;r5;;;;r;rrSG@@@A,          ",
-"               r@@#i;:;s222hG;rrsrrrrrr;ri#@@r        ",
-"             :@@hr:r;SG3ssrr2r;rrsrsrsrsrr;rh@@:      ",
-"            B@H;;rr;3Hs;rrr;sr;;rrsrsrsrsrsr;;H@B     ",
-"           @@s:rrs;5#;;rrrr;r#@H:;;rrsrsrsrsrr:s@@    ",
-"          @@;;srs&X#9;r;r;;,2@@@rrr:;;rrsrsrsrr;;@@   ",
-"         @@;;rrsrrs@MB#@@@@@###@@@@@@#rsrsrsrsrr;;@@  ",
-"        G@r;rrsrsr;#X;SX25Ss#@@#M@#9H9rrsrsrsrsrs;r@G ",
-"        @9:srsrsrs;2@;:;;:.X@@@@@H::;rrsrsrsrsrsrr:3@ ",
-"       X@;rrsrsrsrr;XAi;;:&@@#@Bs:rrsrsrsrsrsrsrsrr;@X",
-"       @#;rsrsrsrsrr;r2ir@@@###::rrsrsrsrsrsrsrsrsr:@@",
-"       @A:rrsrsrsrr;:2@29@@M@@@;:;rrrrsrsrsrsrsrsrs;H@",
-"       @&;rsrsrsrr;A@@@@@@###@@@s::;:;;rrsrsrsrsrsr;G@",
-"       @#:rrsrsrsr;G@5Hr25@@@#@@@#9XG9s:rrrrsrsrsrs:#@",
-"       M@;rsrsrsrs;r@&#;::S@@@@@@@M@@@@Grr:;rsrsrsr;@#",
-"       :@s;rsrsrsrr:M#Msrr;;&#@@@@@@@@@@H@@5;rsrsr;s@,",
-"        @@:rrsrsrsr;S@rrrsr;:;r3MH@@#@M5,S@@irrsrr:@@ ",
-"         @A:rrsrsrsrrrrrsrsrrr;::;@##@r:;rH@h;srr:H@  ",
-"         ;@9:rrsrsrsrrrsrsrsrsr;,S@Hi@i:;s;MX;rr:h@;  ",
-"          r@B:rrrrsrsrsrsrsrr;;sA@#i,i@h;r;S5;r:H@r   ",
-"           ,@@r;rrrsrsrsrsrr;2BM3r:;r:G@:rrr;;r@@,    ",
-"             B@Mr;rrrrsrsrsr@@S;;;rrr:5M;rr;rM@H      ",
-"              .@@@i;;rrrrsrs2i;rrrrr;r@M:;i@@@.       ",
-"                .A@@#5r;;;r;;;rrr;r:r#AsM@@H.         ",
-"                   ;&@@@@MhXS5i5SX9B@@@@G;            ",
-"                       :ihM#@@@@@##hs,                "};
-
-	for (i = 0; i<28; i++)
-	{
-		for(j = 0; j<54; j++)
-			printf("%c",ti814x[i][j]);
-			printf("\n");
-	}
-	printf("\n");
-	#endif
 	return 0;
 }
 
-#ifdef CONFIG_TI814X_CONFIG_DDR
-static void config_ti814x_ddr(void)
-{
-	int macro, phy_num;
-
-	/*Enable the Power Domain Transition of L3 Fast Domain Peripheral*/
-	__raw_writel(0x2, CM_DEFAULT_FW_CLKCTRL);
-	/*Enable the Power Domain Transition of L3 Fast Domain Peripheral*/
-	__raw_writel(0x2, CM_DEFAULT_L3_FAST_CLKSTCTRL);
-	__raw_writel(0x2, CM_DEFAULT_EMIF_0_CLKCTRL); /*Enable EMIF0 Clock*/
-	__raw_writel(0x2, CM_DEFAULT_EMIF_1_CLKCTRL); /*Enable EMIF1 Clock*/
-	__raw_writel(0x2, CM_DEFAULT_DMM_CLKCTRL);
-
-	/*Poll for L3_FAST_GCLK  & DDR_GCLK  are active*/
-	while ((__raw_readl(CM_DEFAULT_L3_FAST_CLKSTCTRL) & 0x300) != 0x300);
-	/*Poll for Module is functional*/
-	while ((__raw_readl(CM_DEFAULT_EMIF_0_CLKCTRL)) != 0x2);
-	while ((__raw_readl(CM_DEFAULT_EMIF_1_CLKCTRL)) != 0x2);
-	while ((__raw_readl(CM_DEFAULT_DMM_CLKCTRL)) != 0x2);
-
-	if (is_ddr3()) {
-		cmd_macro_config(DDR_PHY0, DDR3_PHY_INVERT_CLKOUT_OFF,
-				DDR3_PHY_CTRL_SLAVE_RATIO_CS0_DEFINE,
-				PHY_CMD0_DLL_LOCK_DIFF_DEFINE);
-		cmd_macro_config(DDR_PHY1, DDR3_PHY_INVERT_CLKOUT_OFF,
-				DDR3_PHY_CTRL_SLAVE_RATIO_CS0_DEFINE,
-				PHY_CMD0_DLL_LOCK_DIFF_DEFINE);
-
-		for (phy_num = 0; phy_num <= DDR_PHY1; phy_num++) {
-			for (macro = 0; macro <= DATA_MACRO_3; macro++) {
-				data_macro_config(macro, phy_num,
-					DDR3_PHY_RD_DQS_CS0_DEFINE,
-					DDR3_PHY_WR_DQS_CS0_DEFINE,
-					DDR3_PHY_RD_DQS_GATE_CS0_DEFINE,
-					DDR3_PHY_WR_DATA_CS0_DEFINE);
-			}
-		}
-	} else {
-		cmd_macro_config(DDR_PHY0, PHY_INVERT_CLKOUT_DEFINE,
-				DDR2_PHY_CTRL_SLAVE_RATIO_CS0_DEFINE,
-				PHY_CMD0_DLL_LOCK_DIFF_DEFINE);
-		cmd_macro_config(DDR_PHY1, PHY_INVERT_CLKOUT_DEFINE,
-				DDR2_PHY_CTRL_SLAVE_RATIO_CS0_DEFINE,
-				PHY_CMD0_DLL_LOCK_DIFF_DEFINE);
-
-		for (phy_num = 0; phy_num <= DDR_PHY1; phy_num++) {
-			for (macro = 0; macro <= DATA_MACRO_3; macro++) {
-				data_macro_config(macro, phy_num,
-					DDR2_PHY_RD_DQS_CS0_DEFINE,
-					DDR2_PHY_WR_DQS_CS0_DEFINE,
-					DDR2_PHY_RD_DQS_GATE_CS0_DEFINE,
-					DDR2_PHY_WR_DATA_CS0_DEFINE);
-			}
-		}
-	}
-
-	/* DDR IO CTRL config */
-	__raw_writel(DDR0_IO_CTRL_DEFINE, DDR0_IO_CTRL);
-	__raw_writel(DDR1_IO_CTRL_DEFINE, DDR1_IO_CTRL);
-
-	__raw_writel(__raw_readl(VTP0_CTRL_REG) | 0x00000040 , VTP0_CTRL_REG);
-	__raw_writel(__raw_readl(VTP1_CTRL_REG) | 0x00000040 , VTP1_CTRL_REG);
-
-	// Write 0 to CLRZ bit
-	__raw_writel(__raw_readl(VTP0_CTRL_REG) & 0xfffffffe , VTP0_CTRL_REG);
-	__raw_writel(__raw_readl(VTP1_CTRL_REG) & 0xfffffffe , VTP1_CTRL_REG);
-
-	// Write 1 to CLRZ bit
-	__raw_writel(__raw_readl(VTP0_CTRL_REG) | 0x00000001 , VTP0_CTRL_REG);
-	__raw_writel(__raw_readl(VTP1_CTRL_REG) | 0x00000001 , VTP1_CTRL_REG);
-
-	// Read VTP control registers & check READY bits
-	while ((__raw_readl(VTP0_CTRL_REG) & 0x00000020) != 0x20);
-	while ((__raw_readl(VTP1_CTRL_REG) & 0x00000020) != 0x20);
-
-	if (PG1_0 == get_cpu_rev()) {
-		/*
-		 * Program the PG1.0 DMM to Access EMIF0 and EMIF1
-		 * Two 256MB sections with 128-byte interleaved (hole in b/w)
-		 */
-		__raw_writel(PG1_0_DMM_LISA_MAP__0, DMM_LISA_MAP__0);
-		__raw_writel(PG1_0_DMM_LISA_MAP__1, DMM_LISA_MAP__1);
-		__raw_writel(PG1_0_DMM_LISA_MAP__2, DMM_LISA_MAP__2);
-		__raw_writel(PG1_0_DMM_LISA_MAP__3, DMM_LISA_MAP__3);
-
-		while (__raw_readl(DMM_LISA_MAP__0) != PG1_0_DMM_LISA_MAP__0);
-		while (__raw_readl(DMM_LISA_MAP__1) != PG1_0_DMM_LISA_MAP__1);
-		while (__raw_readl(DMM_LISA_MAP__2) != PG1_0_DMM_LISA_MAP__2);
-		while (__raw_readl(DMM_LISA_MAP__3) != PG1_0_DMM_LISA_MAP__3);
-	} else {
-		/*
-		 * Program the PG2.1 DMM to Access EMIF0 and EMIF1
-		 * 1G contiguous section with 128-byte interleaving
-		 */
-		__raw_writel(PG2_1_DMM_LISA_MAP__0, DMM_LISA_MAP__0);
-		__raw_writel(PG2_1_DMM_LISA_MAP__1, DMM_LISA_MAP__1);
-		__raw_writel(PG2_1_DMM_LISA_MAP__2, DMM_LISA_MAP__2);
-		__raw_writel(PG2_1_DMM_LISA_MAP__3, DMM_LISA_MAP__3);
-
-		while (__raw_readl(DMM_LISA_MAP__0) != PG2_1_DMM_LISA_MAP__0);
-		while (__raw_readl(DMM_LISA_MAP__1) != PG2_1_DMM_LISA_MAP__1);
-		while (__raw_readl(DMM_LISA_MAP__2) != PG2_1_DMM_LISA_MAP__2);
-		while (__raw_readl(DMM_LISA_MAP__3) != PG2_1_DMM_LISA_MAP__3);
-	}
-	__raw_writel(0x80000000, DMM_PAT_BASE_ADDR);
-
-	if (!is_ddr3()) {
-		/*Program EMIF0 CFG Registers*/
-		__raw_writel(DDR2_EMIF_READ_LATENCY, EMIF4_0_DDR_PHY_CTRL_1);
-		__raw_writel(DDR2_EMIF_READ_LATENCY, EMIF4_0_DDR_PHY_CTRL_1_SHADOW);
-		__raw_writel(DDR2_EMIF_TIM1, EMIF4_0_SDRAM_TIM_1);
-		__raw_writel(DDR2_EMIF_TIM1, EMIF4_0_SDRAM_TIM_1_SHADOW);
-		__raw_writel(DDR2_EMIF_TIM2, EMIF4_0_SDRAM_TIM_2);
-		__raw_writel(DDR2_EMIF_TIM2, EMIF4_0_SDRAM_TIM_2_SHADOW);
-		__raw_writel(DDR2_EMIF_TIM3, EMIF4_0_SDRAM_TIM_3);
-		__raw_writel(DDR2_EMIF_TIM3, EMIF4_0_SDRAM_TIM_3_SHADOW);
-		__raw_writel(DDR2_EMIF_SDRAM_CONFIG, EMIF4_0_SDRAM_CONFIG);
-
-		__raw_writel(DDR_EMIF_REF_CTRL | DDR_EMIF_REF_TRIGGER,
-						 EMIF4_0_SDRAM_REF_CTRL);
-		__raw_writel(DDR_EMIF_REF_CTRL, EMIF4_0_SDRAM_REF_CTRL_SHADOW);
-		__raw_writel(DDR2_EMIF_SDRAM_ZQCR, EMIF4_0_SDRAM_ZQCR);
-		__raw_writel(DDR_EMIF_REF_CTRL, EMIF4_0_SDRAM_REF_CTRL);
-		__raw_writel(DDR_EMIF_REF_CTRL, EMIF4_0_SDRAM_REF_CTRL_SHADOW);
-
-		__raw_writel(DDR2_EMIF_REF_CTRL, EMIF4_0_SDRAM_REF_CTRL);
-		__raw_writel(DDR2_EMIF_REF_CTRL, EMIF4_0_SDRAM_REF_CTRL_SHADOW);
-
-		/*Program EMIF1 CFG Registers*/
-		__raw_writel(DDR2_EMIF_READ_LATENCY, EMIF4_1_DDR_PHY_CTRL_1);
-		__raw_writel(DDR2_EMIF_READ_LATENCY, EMIF4_1_DDR_PHY_CTRL_1_SHADOW);
-		__raw_writel(DDR2_EMIF_TIM1, EMIF4_1_SDRAM_TIM_1);
-		__raw_writel(DDR2_EMIF_TIM1, EMIF4_1_SDRAM_TIM_1_SHADOW);
-		__raw_writel(DDR2_EMIF_TIM2, EMIF4_1_SDRAM_TIM_2);
-		__raw_writel(DDR2_EMIF_TIM2, EMIF4_1_SDRAM_TIM_2_SHADOW);
-		__raw_writel(DDR2_EMIF_TIM3, EMIF4_1_SDRAM_TIM_3);
-		__raw_writel(DDR2_EMIF_TIM3, EMIF4_1_SDRAM_TIM_3_SHADOW);
-		__raw_writel(DDR2_EMIF_SDRAM_CONFIG, EMIF4_1_SDRAM_CONFIG);
-
-		__raw_writel(DDR_EMIF_REF_CTRL | DDR_EMIF_REF_TRIGGER,
-						 EMIF4_1_SDRAM_REF_CTRL);
-		__raw_writel(DDR_EMIF_REF_CTRL, EMIF4_1_SDRAM_REF_CTRL_SHADOW);
-		__raw_writel(DDR2_EMIF_SDRAM_ZQCR, EMIF4_1_SDRAM_ZQCR);
-		__raw_writel(DDR_EMIF_REF_CTRL, EMIF4_1_SDRAM_REF_CTRL);
-		__raw_writel(DDR_EMIF_REF_CTRL, EMIF4_1_SDRAM_REF_CTRL_SHADOW);
-
-		__raw_writel(DDR2_EMIF_REF_CTRL, EMIF4_1_SDRAM_REF_CTRL);
-		__raw_writel(DDR2_EMIF_REF_CTRL, EMIF4_1_SDRAM_REF_CTRL_SHADOW);
-
-	} else {
-		/*Program EMIF0 CFG Registers*/
-		__raw_writel(DDR3_EMIF_READ_LATENCY, EMIF4_0_DDR_PHY_CTRL_1);
-		__raw_writel(DDR3_EMIF_READ_LATENCY, EMIF4_0_DDR_PHY_CTRL_1_SHADOW);
-		__raw_writel(DDR3_EMIF_TIM1, EMIF4_0_SDRAM_TIM_1);
-		__raw_writel(DDR3_EMIF_TIM1, EMIF4_0_SDRAM_TIM_1_SHADOW);
-		__raw_writel(DDR3_EMIF_TIM2, EMIF4_0_SDRAM_TIM_2);
-		__raw_writel(DDR3_EMIF_TIM2, EMIF4_0_SDRAM_TIM_2_SHADOW);
-		__raw_writel(DDR3_EMIF_TIM3, EMIF4_0_SDRAM_TIM_3);
-		__raw_writel(DDR3_EMIF_TIM3, EMIF4_0_SDRAM_TIM_3_SHADOW);
-		__raw_writel(DDR3_EMIF_SDRAM_CONFIG, EMIF4_0_SDRAM_CONFIG);
-
-		__raw_writel(DDR_EMIF_REF_CTRL | DDR_EMIF_REF_TRIGGER,
-						 EMIF4_0_SDRAM_REF_CTRL);
-		__raw_writel(DDR_EMIF_REF_CTRL, EMIF4_0_SDRAM_REF_CTRL_SHADOW);
-		__raw_writel(DDR3_EMIF_SDRAM_ZQCR, EMIF4_0_SDRAM_ZQCR);
-		__raw_writel(DDR_EMIF_REF_CTRL, EMIF4_0_SDRAM_REF_CTRL);
-		__raw_writel(DDR_EMIF_REF_CTRL, EMIF4_0_SDRAM_REF_CTRL_SHADOW);
-
-		__raw_writel(DDR3_EMIF_REF_CTRL, EMIF4_0_SDRAM_REF_CTRL);
-		__raw_writel(DDR3_EMIF_REF_CTRL, EMIF4_0_SDRAM_REF_CTRL_SHADOW);
-
-		/*Program EMIF1 CFG Registers*/
-		__raw_writel(DDR3_EMIF_READ_LATENCY, EMIF4_1_DDR_PHY_CTRL_1);
-		__raw_writel(DDR3_EMIF_READ_LATENCY, EMIF4_1_DDR_PHY_CTRL_1_SHADOW);
-		__raw_writel(DDR3_EMIF_TIM1, EMIF4_1_SDRAM_TIM_1);
-		__raw_writel(DDR3_EMIF_TIM1, EMIF4_1_SDRAM_TIM_1_SHADOW);
-		__raw_writel(DDR3_EMIF_TIM2, EMIF4_1_SDRAM_TIM_2);
-		__raw_writel(DDR3_EMIF_TIM2, EMIF4_1_SDRAM_TIM_2_SHADOW);
-		__raw_writel(DDR3_EMIF_TIM3, EMIF4_1_SDRAM_TIM_3);
-		__raw_writel(DDR3_EMIF_TIM3, EMIF4_1_SDRAM_TIM_3_SHADOW);
-		__raw_writel(DDR3_EMIF_SDRAM_CONFIG, EMIF4_1_SDRAM_CONFIG);
-
-		__raw_writel(DDR_EMIF_REF_CTRL | DDR_EMIF_REF_TRIGGER,
-						 EMIF4_1_SDRAM_REF_CTRL);
-		__raw_writel(DDR_EMIF_REF_CTRL, EMIF4_1_SDRAM_REF_CTRL_SHADOW);
-		__raw_writel(DDR3_EMIF_SDRAM_ZQCR, EMIF4_1_SDRAM_ZQCR);
-		__raw_writel(DDR_EMIF_REF_CTRL, EMIF4_1_SDRAM_REF_CTRL);
-		__raw_writel(DDR_EMIF_REF_CTRL, EMIF4_1_SDRAM_REF_CTRL_SHADOW);
-
-		__raw_writel(DDR3_EMIF_REF_CTRL, EMIF4_1_SDRAM_REF_CTRL);
-		__raw_writel(DDR3_EMIF_REF_CTRL, EMIF4_1_SDRAM_REF_CTRL_SHADOW);
-	}
-}
-
-#endif
-
-#ifdef CONFIG_ASI1230_CONFIG_MDDR
 static void config_asi1230_mddr(void)
 {
 	int macro, phy_num;
@@ -542,8 +271,6 @@ static void config_asi1230_mddr(void)
 	__raw_writel(mDDR_EMIF_REF_CTRL, EMIF4_0_SDRAM_REF_CTRL);
 	__raw_writel(mDDR_EMIF_REF_CTRL, EMIF4_0_SDRAM_REF_CTRL_SHADOW);
 }
-#endif
-
 
 #ifdef CONFIG_SETUP_PLL
 static void audio_pll_config()
@@ -845,322 +572,27 @@ void prcm_init(u32 in_ddr)
 #endif
 }
 
-#define PADCTRL_BASE 0x48140000
-
-#define PAD204_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B2c))
-#define PAD205_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B30))
-#define PAD206_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B34))
-#define PAD207_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B38))
-#define PAD208_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B3c))
-#define PAD209_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B40))
-#define PAD210_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B44))
-#define PAD211_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B48))
-#define PAD212_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B4c))
-#define PAD213_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B50))
-#define PAD214_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B54))
-#define PAD215_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B58))
-#define PAD216_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B5c))
-#define PAD217_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B60))
-#define PAD218_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B64))
-#define PAD219_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B68))
-#define PAD220_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B6c))
-#define PAD221_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B70))
-#define PAD222_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B74))
-#define PAD223_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B78))
-#define PAD224_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B7c))
-#define PAD225_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B80))
-#define PAD226_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B84))
-#define PAD227_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B88))
-
-#define PAD232_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B9C))
-#define PAD233_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BA0))
-#define PAD234_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BA4))
-#define PAD235_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BA8))
-#define PAD236_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BAC))
-#define PAD237_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BB0))
-#define PAD238_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BB4))
-#define PAD239_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BB8))
-#define PAD240_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BBC))
-#define PAD241_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BC0))
-#define PAD242_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BC4))
-#define PAD243_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BC8))
-#define PAD244_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BCC))
-#define PAD245_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BD0))
-#define PAD246_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BD4))
-#define PAD247_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BD8))
-#define PAD248_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BDC))
-#define PAD249_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BE0))
-#define PAD250_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BE4))
-#define PAD251_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BE8))
-#define PAD252_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BEC))
-#define PAD253_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BF0))
-#define PAD254_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BF4))
-#define PAD255_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BF8))
-#define PAD256_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BFC))
-#define PAD257_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0C00))
-#define PAD258_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0C04))
-
-
-static void cpsw_pad_config()
-{
-	volatile u32 val = 0;
-
-	/*configure pin mux for rmii_refclk,mdio_clk,mdio_d */
-	val = PAD232_CNTRL;
-	PAD232_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-	val = PAD233_CNTRL;
-	PAD233_CNTRL = (volatile unsigned int) (BIT(19) | BIT(17) | BIT(0));
-	val = PAD234_CNTRL;
-	PAD234_CNTRL = (volatile unsigned int) (BIT(19) | BIT(18) | BIT(17) |
-			BIT(0));
-
-	/*For PG1.0 we only support GMII Mode, setup gmii0/gmii1 pins here*/
-	if (PG1_0 == get_cpu_rev()) {
-		/* setup gmii0 pins, pins235-258 in function mode 1 */
-		val = PAD235_CNTRL;
-		PAD235_CNTRL = (volatile unsigned int) (BIT(19) | BIT(18) |
-				BIT(0));
-		val = PAD236_CNTRL;
-		PAD236_CNTRL = (volatile unsigned int) (BIT(19) | BIT(18) |
-				BIT(0));
-		val = PAD237_CNTRL;
-		PAD237_CNTRL = (volatile unsigned int) (BIT(19) | BIT(18) |
-				BIT(0));
-		val = PAD238_CNTRL;
-		PAD238_CNTRL = (volatile unsigned int) (BIT(19) | BIT(18) |
-				BIT(0));
-		val = PAD239_CNTRL;
-		PAD239_CNTRL = (volatile unsigned int) (BIT(19) | BIT(18) |
-				BIT(0));
-		val = PAD240_CNTRL;
-		PAD240_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-		val = PAD241_CNTRL;
-		PAD241_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-		val = PAD242_CNTRL;
-		PAD242_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-		val = PAD243_CNTRL;
-		PAD243_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-		val = PAD244_CNTRL;
-		PAD244_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-		val = PAD245_CNTRL;
-		PAD245_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-		val = PAD246_CNTRL;
-		PAD246_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-		val = PAD247_CNTRL;
-		PAD247_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-		val = PAD248_CNTRL;
-		PAD248_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-		val = PAD249_CNTRL;
-		PAD249_CNTRL = (volatile unsigned int) (BIT(0));
-		val = PAD250_CNTRL;
-		PAD250_CNTRL = (volatile unsigned int) (BIT(0));
-		val = PAD251_CNTRL;
-		PAD251_CNTRL = (volatile unsigned int) (BIT(0));
-		val = PAD252_CNTRL;
-		PAD252_CNTRL = (volatile unsigned int) (BIT(0));
-		val = PAD253_CNTRL;
-		PAD253_CNTRL = (volatile unsigned int) (BIT(0));
-		val = PAD254_CNTRL;
-		PAD254_CNTRL = (volatile unsigned int) (BIT(0));
-		val = PAD255_CNTRL;
-		PAD255_CNTRL = (volatile unsigned int) (BIT(0));
-		val = PAD256_CNTRL;
-		PAD256_CNTRL = (volatile unsigned int) (BIT(0));
-		val = PAD257_CNTRL;
-		PAD257_CNTRL = (volatile unsigned int) (BIT(0));
-		val = PAD258_CNTRL;
-		PAD258_CNTRL = (volatile unsigned int) (BIT(0));
-
-		/* setup gmii1 pins, pins204-227 in function mode 2 */
-		val = PAD204_CNTRL;
-		PAD204_CNTRL = (volatile unsigned int) (BIT(19) | BIT(18) | BIT(1));
-		val = PAD205_CNTRL;
-		PAD205_CNTRL = (volatile unsigned int) (BIT(19) | BIT(18) | BIT(1));
-		val = PAD206_CNTRL;
-		PAD206_CNTRL = (volatile unsigned int) (BIT(19) | BIT(18) | BIT(1));
-		val = PAD207_CNTRL;
-		PAD207_CNTRL = (volatile unsigned int) (BIT(19) | BIT(18) | BIT(1));
-		val = PAD208_CNTRL;
-		PAD208_CNTRL = (volatile unsigned int) (BIT(19) | BIT(18) | BIT(1));
-		val = PAD209_CNTRL;
-		PAD209_CNTRL = (volatile unsigned int) (BIT(18) | BIT(1));
-		val = PAD210_CNTRL;
-		PAD210_CNTRL = (volatile unsigned int) (BIT(18) | BIT(1));
-		val = PAD211_CNTRL;
-		PAD211_CNTRL = (volatile unsigned int) (BIT(18) | BIT(1));
-		val = PAD212_CNTRL;
-		PAD212_CNTRL = (volatile unsigned int) (BIT(18) | BIT(1));
-		val = PAD213_CNTRL;
-		PAD213_CNTRL = (volatile unsigned int) (BIT(18) | BIT(1));
-		val = PAD214_CNTRL;
-		PAD214_CNTRL = (volatile unsigned int) (BIT(18) | BIT(1));
-		val = PAD215_CNTRL;
-		PAD215_CNTRL = (volatile unsigned int) (BIT(18) | BIT(1));
-		val = PAD216_CNTRL;
-		PAD216_CNTRL = (volatile unsigned int) (BIT(18) | BIT(1));
-		val = PAD217_CNTRL;
-		PAD217_CNTRL = (volatile unsigned int) (BIT(18) | BIT(1));
-		val = PAD218_CNTRL;
-		PAD218_CNTRL = (volatile unsigned int) (BIT(1));
-		val = PAD219_CNTRL;
-		PAD219_CNTRL = (volatile unsigned int) (BIT(1));
-		val = PAD220_CNTRL;
-		PAD220_CNTRL = (volatile unsigned int) (BIT(1));
-		val = PAD221_CNTRL;
-		PAD221_CNTRL = (volatile unsigned int) (BIT(1));
-		val = PAD222_CNTRL;
-		PAD222_CNTRL = (volatile unsigned int) (BIT(1));
-		val = PAD223_CNTRL;
-		PAD223_CNTRL = (volatile unsigned int) (BIT(1));
-		val = PAD224_CNTRL;
-		PAD224_CNTRL = (volatile unsigned int) (BIT(1));
-		val = PAD225_CNTRL;
-		PAD225_CNTRL = (volatile unsigned int) (BIT(1));
-		val = PAD226_CNTRL;
-		PAD226_CNTRL = (volatile unsigned int) (BIT(1));
-		val = PAD227_CNTRL;
-		PAD227_CNTRL = (volatile unsigned int) (BIT(1));
-
-	} else {/*setup rgmii0/rgmii1 pins here*/
-		/* In this case we enable rgmii_en bit in GMII_SEL register and
-		 * still program the pins in gmii mode: gmii0 pins in mode 1*/
-		val = PAD235_CNTRL; /*rgmii0_rxc*/
-		PAD235_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-		val = PAD236_CNTRL; /*rgmii0_rxctl*/
-		PAD236_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-		val = PAD237_CNTRL; /*rgmii0_rxd[2]*/
-		PAD237_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-		val = PAD238_CNTRL; /*rgmii0_txctl*/
-		PAD238_CNTRL = (volatile unsigned int) BIT(0);
-		val = PAD239_CNTRL; /*rgmii0_txc*/
-		PAD239_CNTRL = (volatile unsigned int) BIT(0);
-		val = PAD240_CNTRL; /*rgmii0_txd[0]*/
-		PAD240_CNTRL = (volatile unsigned int) BIT(0);
-		val = PAD241_CNTRL; /*rgmii0_rxd[0]*/
-		PAD241_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-		val = PAD242_CNTRL; /*rgmii0_rxd[1]*/
-		PAD242_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-		val = PAD243_CNTRL; /*rgmii1_rxctl*/
-		PAD243_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-		val = PAD244_CNTRL; /*rgmii0_rxd[3]*/
-		PAD244_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-		val = PAD245_CNTRL; /*rgmii0_txd[3]*/
-		PAD245_CNTRL = (volatile unsigned int) BIT(0);
-		val = PAD246_CNTRL; /*rgmii0_txd[2]*/
-		PAD246_CNTRL = (volatile unsigned int) BIT(0);
-		val = PAD247_CNTRL; /*rgmii0_txd[1]*/
-		PAD247_CNTRL = (volatile unsigned int) BIT(0);
-		val = PAD248_CNTRL; /*rgmii1_rxd[1]*/
-		PAD248_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-		val = PAD249_CNTRL; /*rgmii1_rxc*/
-		PAD249_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-		val = PAD250_CNTRL; /*rgmii1_rxd[3]*/
-		PAD250_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-		val = PAD251_CNTRL; /*rgmii1_txd[1]*/
-		PAD251_CNTRL = (volatile unsigned int) (BIT(0));
-		val = PAD252_CNTRL; /*rgmii1_txctl*/
-		PAD252_CNTRL = (volatile unsigned int) (BIT(0));
-		val = PAD253_CNTRL; /*rgmii1_txd[0]*/
-		PAD253_CNTRL = (volatile unsigned int) (BIT(0));
-		val = PAD254_CNTRL; /*rgmii1_txd[2]*/
-		PAD254_CNTRL = (volatile unsigned int) (BIT(0));
-		val = PAD255_CNTRL; /*rgmii1_txc*/
-		PAD255_CNTRL = (volatile unsigned int) (BIT(0));
-		val = PAD256_CNTRL; /*rgmii1_rxd[0]*/
-		PAD256_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-		val = PAD257_CNTRL; /*rgmii1_txd[3]*/
-		PAD257_CNTRL = (volatile unsigned int) (BIT(0));
-		val = PAD258_CNTRL; /*rgmii1_rxd[2]*/
-		PAD258_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-	}
-}
-
-struct nor_pad_config {
-	unsigned int offset;
-	unsigned int value;
-};
-
-static struct nor_pad_config nor_pad_cfg[] = {
-		{GPMC_D0, MODE(1) | INPUT_EN | PULL_DIS},
-		{GPMC_D1, MODE(1) | INPUT_EN | PULL_DIS},
-		{GPMC_D2, MODE(1) | INPUT_EN | PULL_DIS},
-		{GPMC_D3, MODE(1) | INPUT_EN | PULL_DIS},
-		{GPMC_D4, MODE(1) | INPUT_EN | PULL_DIS},
-		{GPMC_D5, MODE(1) | INPUT_EN | PULL_DIS},
-		{GPMC_D6, MODE(1) | INPUT_EN | PULL_DIS},
-		{GPMC_D7, MODE(1) | INPUT_EN | PULL_DIS},
-		{GPMC_D8, MODE(1) | INPUT_EN | PULL_DIS},
-		{GPMC_D9, MODE(1) | INPUT_EN | PULL_DIS},
-		{GPMC_D10, MODE(1) | INPUT_EN | PULL_DIS},
-		{GPMC_D11, MODE(1) | INPUT_EN | PULL_DIS},
-		{GPMC_D12, MODE(1) | INPUT_EN | PULL_DIS},
-		{GPMC_D13, MODE(1) | INPUT_EN | PULL_DIS},
-		{GPMC_D14, MODE(1) | INPUT_EN | PULL_DIS},
-		{GPMC_D15, MODE(1) | INPUT_EN | PULL_DIS},
-		{GPMC_A1, MODE(2) | PULL_UP_EN},
-		{GPMC_A2, MODE(2) | PULL_UP_EN},
-		{GPMC_A3, MODE(2) | PULL_UP_EN},
-		{GPMC_A4, MODE(2) | PULL_UP_EN},
-		{GPMC_A5, MODE(5) | PULL_UP_EN},
-		{GPMC_A6, MODE(5)},
-		{GPMC_A7, MODE(5)},
-		{GPMC_A8, MODE(5)},
-		{GPMC_A9, MODE(5)},
-		{GPMC_A10, MODE(5) | PULL_UP_EN},
-		{GPMC_A11, MODE(5)},
-		{GPMC_A12, MODE(5)},
-		{GPMC_A13, MODE(2) | PULL_UP_EN},
-		{GPMC_A14, MODE(2) | PULL_UP_EN},
-		{GPMC_A15, MODE(2)},
-		{GPMC_A16, MODE(1)},
-		{GPMC_A17, MODE(1)},
-		{GPMC_A18, MODE(1)},
-		{GPMC_A19, MODE(1)},
-		{GPMC_A20, MODE(1) | PULL_UP_EN},
-		{GPMC_A21, MODE(1)},
-		{GPMC_A22, MODE(1) | PULL_UP_EN},
-		{GPMC_A23, MODE(1)},
-		{GPMC_A24, MODE(2) | PULL_UP_EN},
-		{GPMC_A25, MODE(2)},
-		{GPMC_A27, MODE(8) | PULL_UP_EN},
-		{GPMC_CS0_REG, MODE(1) | PULL_UP_EN},
-		{GPMC_OEN, MODE(1) | PULL_UP_EN},
-		{GPMC_WEN, MODE(1) | PULL_UP_EN},
-		{0},
-};
-
-/*********************************************************************
- *
- * nor_pad_config_mux - configure the pin mux for NOR
- *
- *********************************************************************/
-static void nor_pad_config_mux(void)
-{
-	u8 i = 0;
-
-	while (nor_pad_cfg[i].offset != 0x0) {
-		*(volatile u32 *)(nor_pad_cfg[i].offset) =
-			nor_pad_cfg[i].value;
-		i++;
-	}
-}
-
 /*
- * baord specific muxing of pins
+ * board specific muxing of pins
  */
-void set_muxconf_regs(void)
-{
-	u32 i, add, val;
-	u32 pad_conf[] = {
-#include "mux.h"
+struct pad_mux {
+    u32 addr;
+    u32 val;
+};
+
+static struct pad_mux pad_conf[] = {
+#       include "mux.h"
+        {0} // End Of List marker
 	};
 
-	for (i = 0; i<N_PINS; i++)
-	{
-		add = PIN_CTRL_BASE + (i*4);
+void set_muxconf_regs(void)
+{
+	u32 i = 0, add, val;
+	while ((add = pad_conf[i].addr) != 0x0) {
 		val = __raw_readl(add);
-		val |= pad_conf[i];
+		val |= pad_conf[i].val;
 		__raw_writel(val, add);
+		i++;
 	}
 	/* MMC/SD pull-down enable */
 	__raw_writel(0x000C0040, 0x48140928);
@@ -1202,15 +634,9 @@ void s_init(u32 in_ddr)
 	unlock_pll_control_mmr();
 	/* Setup the PLLs and the clocks for the peripherals */
 	prcm_init(in_ddr);
-#if defined(CONFIG_TI814X_CONFIG_DDR)
-	if (!in_ddr)
-		config_ti814x_ddr();	/* Do DDR settings */
-#endif
 
-#if defined(CONFIG_ASI1230_CONFIG_MDDR)
 	if (!in_ddr)
 		config_asi1230_mddr();	/* Do DDR settings */
-#endif
 }
 
 /*
