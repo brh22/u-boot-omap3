@@ -27,17 +27,48 @@
 #include <net.h>
 #include <miiphy.h>
 #include <netdev.h>
+#include <status_led.h>
 
 #include "ddr_defs.h"
 
-#if 0
-#define __raw_readl(a)		(*(volatile unsigned int *)(a))
-#define __raw_writel(v, a)	(*(volatile unsigned int *)(a) = (v))
-#define __raw_readw(a)		(*(volatile unsigned short *)(a))
-#define __raw_writew(v, a)	(*(volatile unsigned short *)(a) = (v))
-#endif
-
 DECLARE_GLOBAL_DATA_PTR;
+
+/* TODO: move these constants to a better place */
+#define GPIO_CTRL       0x130
+#define GPIO_OE         0x134
+#define GPIO_DATAOUT    0x13C
+
+/* Implement board specific LED API. LEDs are attached to GPIO0 pins from 0 to 3 */
+void __led_toggle (led_id_t mask)
+{
+    mask &= 0xF;
+    u32 o_reg_val = __raw_readl(GPIO0_BASE + GPIO_DATAOUT) ^ mask;
+    __raw_writel(o_reg_val, GPIO0_BASE + GPIO_DATAOUT);
+}
+
+void __led_init (led_id_t mask, int state)
+{
+    /* Make sure we do not try to set GPIO OE bits that do not belong to LEDs
+       then set the output enable register and proceed to set the state of the LED.
+    */
+    mask &= 0xF;
+    u32 oe_reg_val = __raw_readl(GPIO0_BASE + GPIO_OE) & (~mask);
+    __raw_writel(oe_reg_val, GPIO0_BASE + GPIO_OE);
+    __led_set(mask, state);
+}
+
+void __led_set (led_id_t mask, int state)
+{
+    mask &= 0xF;
+    u32 o_reg_val = __raw_readl(GPIO0_BASE + GPIO_DATAOUT);
+    if (state != STATUS_LED_OFF)
+        o_reg_val |= mask;
+    else
+        o_reg_val &= mask;
+    __raw_writel(o_reg_val, GPIO0_BASE + GPIO_DATAOUT);
+}
+
+/*  */
 
 static void cmd_macro_config(u32 ddr_phy, u32 inv_clk_out,
 			 u32 ctrl_slave_ratio_cs0, u32 cmd_dll_lock_diff)
@@ -126,9 +157,6 @@ int board_init(void)
 {
 	u32 regVal;
 
-	/* Do the required pin-muxing before modules are setup */
-	set_muxconf_regs();
-
 	/* setup RMII_REFCLK to be sourced from audio_pll */
 	__raw_writel(0x4, RMII_REFCLK_SRC);
 
@@ -167,10 +195,6 @@ int dram_init(void)
 	/* Fill up board info */
 	gd->bd->bi_dram[0].start = PHYS_DRAM_1;
 	gd->bd->bi_dram[0].size = PHYS_DRAM_1_SIZE;
-
-	gd->bd->bi_dram[1].start = PHYS_DRAM_2;
-	gd->bd->bi_dram[1].size = PHYS_DRAM_2_SIZE;
-
 	return 0;
 }
 
@@ -499,6 +523,12 @@ void per_clocks_enable(void)
 
 	while((__raw_readl(CM_ALWON_L3_SLOW_CLKSTCTRL) & 0x2100) != 0x2100);
 
+    /* GPIO0 */
+    __raw_writel(0x102, CM_ALWON_GPIO_0_CLKCTRL);
+	while(__raw_readl(CM_ALWON_GPIO_0_CLKCTRL) != 0x2);
+    // GATINGRATIO 0x3: Functional clock is interface clock divided by 8
+	__raw_writel((0x3 << 1), GPIO0_BASE + GPIO_CTRL);
+
 	/* SPI */
 	__raw_writel(0x2, CM_ALWON_SPI_CLKCTRL);
 	while(__raw_readl(CM_ALWON_SPI_CLKCTRL) != 0x2);
@@ -634,9 +664,20 @@ void s_init(u32 in_ddr)
 	unlock_pll_control_mmr();
 	/* Setup the PLLs and the clocks for the peripherals */
 	prcm_init(in_ddr);
+	/* Do the required pin-muxing before modules are setup 
+	   (move this back to the beginning of board_init() if it is too early).
+	*/
+	set_muxconf_regs();
+
+	/* Turn on LED0 to indicate we are alive *before* attempting to init DRAM */
+	status_led_set(STATUS_LED_BIT, STATUS_LED_ON);
 
 	if (!in_ddr)
 		config_asi1230_mddr();	/* Do DDR settings */
+
+	/* Turn on LED1 and turn off LED0 to indicate we completed DRAM init */
+	status_led_set(STATUS_LED_BIT, STATUS_LED_OFF);
+	status_led_set(STATUS_LED_BIT1, STATUS_LED_ON);
 }
 
 /*

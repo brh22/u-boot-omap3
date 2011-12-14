@@ -24,6 +24,23 @@
 /* Display CPU info */
 #define CONFIG_DISPLAY_CPUINFO          1
 
+/* Use board specific LED API */
+#define CONFIG_STATUS_LED               1
+#define CONFIG_BOARD_SPECIFIC_LED       1
+/* Define 4 LEDs (the maximum supported by the API) */
+#define STATUS_LED_BIT          0
+#define STATUS_LED_STATE        STATUS_LED_ON
+#define STATUS_LED_PERIOD       0
+#define STATUS_LED_BIT1         1
+#define STATUS_LED_STATE1       STATUS_LED_OFF
+#define STATUS_LED_PERIOD1      0
+#define STATUS_LED_BIT2         2
+#define STATUS_LED_STATE2       STATUS_LED_OFF
+#define STATUS_LED_PERIOD2      0
+#define STATUS_LED_BIT3         3
+#define STATUS_LED_STATE3       STATUS_LED_OFF
+#define STATUS_LED_PERIOD3      0
+
 /* In the 1st stage we have just 110K, so cut down wherever possible */
 #ifdef CONFIG_TI814X_MIN_CONFIG
 
@@ -40,7 +57,6 @@
 # define CONFIG_CMD_LOADY	/* loady */
 # define CONFIG_SETUP_PLL
 # define CONFIG_TI814X_CONFIG_DDR
-//# define CONFIG_TI814X_EVM_DDR3
 # define CONFIG_ASI1230_CONFIG_MDDR
 /*
  * # define CONFIG_TI814X_EVM_DDR2
@@ -126,9 +142,6 @@
 						   initial data */
 
 #define CONFIG_MISC_INIT_R		1
-#ifndef CONFIG_TI814X_MIN_CONFIG
-# define CONFIG_TI814X_ASCIIART		1	/* The centaur */
-#endif
 #define CONFIG_SYS_AUTOLOAD		"yes"
 #define CONFIG_CMD_CACHE
 #define CONFIG_CMD_ECHO
@@ -147,7 +160,7 @@
 /* Boot Argument Buffer Size */
 #define CONFIG_SYS_BARGSIZE		CONFIG_SYS_CBSIZE
 /* memtest works on 8 MB in DRAM after skipping 32MB from start addr of ram disk*/
-#define CONFIG_SYS_MEMTEST_START	(PHYS_DRAM_1 + (64 *1024 *1024))
+#define CONFIG_SYS_MEMTEST_START	(PHYS_DRAM_1)
 #define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_MEMTEST_START \
 					+ (8 * 1024 * 1024))
 
@@ -160,11 +173,9 @@
 /**
  * Physical Memory Map
  */
-#define CONFIG_NR_DRAM_BANKS		2		/* we have 2 banks of DRAM */
-#define PHYS_DRAM_1			0x80000000	/* DRAM Bank #1 */
-#define PHYS_DRAM_1_SIZE		0x40000000	/* 1 GB */
-#define PHYS_DRAM_2			0xC0000000	/* DRAM Bank #2 */
-#define PHYS_DRAM_2_SIZE		0x40000000	/* 1 GB */
+#define CONFIG_NR_DRAM_BANKS	1	        /* we have 2 banks of DRAM */
+#define PHYS_DRAM_1			    0x80000000	/* DRAM Bank #1 */
+#define PHYS_DRAM_1_SIZE		0x08000000	/* 64MBytes */
 
 
 /**
