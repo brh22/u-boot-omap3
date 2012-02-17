@@ -37,6 +37,8 @@ DECLARE_GLOBAL_DATA_PTR;
 #define GPIO_CTRL       0x130
 #define GPIO_OE         0x134
 #define GPIO_DATAOUT    0x13C
+#define GPIO_CLEARDATAOUT 0x190
+#define GPIO_SETDATAOUT 0x194
 
 /* Implement board specific LED API. LEDs are attached to GPIO0 pins from 0 to 3 */
 void __led_toggle (led_id_t mask)
@@ -59,13 +61,12 @@ void __led_init (led_id_t mask, int state)
 
 void __led_set (led_id_t mask, int state)
 {
-    mask &= 0xF;
-    u32 o_reg_val = __raw_readl(GPIO0_BASE + GPIO_DATAOUT);
+    u32 o_reg_val = mask & 0xF;
+	/* LEDs are lit when the corresponding GPIO is driven low */
     if (state != STATUS_LED_OFF)
-        o_reg_val |= mask;
+        __raw_writel(o_reg_val, GPIO0_BASE + GPIO_CLEARDATAOUT);
     else
-        o_reg_val &= mask;
-    __raw_writel(o_reg_val, GPIO0_BASE + GPIO_DATAOUT);
+        __raw_writel(o_reg_val, GPIO0_BASE + GPIO_SETDATAOUT);
 }
 
 /*  */
