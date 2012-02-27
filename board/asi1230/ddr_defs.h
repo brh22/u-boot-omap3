@@ -1,7 +1,10 @@
 
 #include <asm/arch/ddr_defs_ti814x.h>
 
-/* TI814X mDDR EMIF CFG Registers values 166MHz */
+/* Values taken and adapterd from "IS43LR32160B: 4M x 32Bits x 4Banks Mobile
+   DDR SDRAM" datasheet. mDDR is clocked at 166MHz
+*/
+
 #define CAS_LATENCY (3)
 #define mDDR_CLK_FREQ (166)
 #define mDDR_CLK_PERIOD (6)
@@ -76,7 +79,7 @@
 #define mDDR_EMIF_SDRAM_ZQCR		0x50074BE1 /* SDRAM Output Impedance Calibration Configuration */
 
 /* ASI1230 DMM LISA MAPPING: 1 contiguous 64MB section starting at 0x80000000, no interleaving */
-#define ASI1230_DMM_LISA_MAP__0		0x0
+#define ASI1230_DMM_LISA_MAP__0		((0x80 << 24) | (2 << 20) | (1 << 8))
 #define ASI1230_DMM_LISA_MAP__1		0x0
 #define ASI1230_DMM_LISA_MAP__2		0x0
-#define ASI1230_DMM_LISA_MAP__3		((0x80 << 24) | (2 << 20) | (1 << 8))
+#define ASI1230_DMM_LISA_MAP__3		0x0

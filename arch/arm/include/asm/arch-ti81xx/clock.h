@@ -21,6 +21,10 @@
 #ifndef _CLOCKS_H_
 #define _CLOCKS_H_
 
+#ifdef CONFIG_ASI1230
+#include <asm/arch/clocks_asi1230.h>
+#endif
+
 #ifdef CONFIG_TI816X
 #include <asm/arch/clocks_ti816x.h>
 #endif

@@ -43,7 +43,7 @@ DECLARE_GLOBAL_DATA_PTR;
 /* Implement board specific LED API. LEDs are attached to GPIO0 pins from 0 to 3 */
 void __led_toggle (led_id_t mask)
 {
-    mask &= 0xF;
+    mask &= 0x1E;
     u32 o_reg_val = __raw_readl(GPIO0_BASE + GPIO_DATAOUT) ^ mask;
     __raw_writel(o_reg_val, GPIO0_BASE + GPIO_DATAOUT);
 }
@@ -53,7 +53,7 @@ void __led_init (led_id_t mask, int state)
     /* Make sure we do not try to set GPIO OE bits that do not belong to LEDs
        then set the output enable register and proceed to set the state of the LED.
     */
-    mask &= 0xF;
+    mask &= 0x1E;
     u32 oe_reg_val = __raw_readl(GPIO0_BASE + GPIO_OE) & (~mask);
     __raw_writel(oe_reg_val, GPIO0_BASE + GPIO_OE);
     __led_set(mask, state);
@@ -61,7 +61,7 @@ void __led_init (led_id_t mask, int state)
 
 void __led_set (led_id_t mask, int state)
 {
-    u32 o_reg_val = mask & 0xF;
+    u32 o_reg_val = mask & 0x1E;
 	/* LEDs are lit when the corresponding GPIO is driven low */
     if (state != STATUS_LED_OFF)
         __raw_writel(o_reg_val, GPIO0_BASE + GPIO_CLEARDATAOUT);
@@ -141,6 +141,10 @@ static void iva_pll_config(void);
 static void usb_pll_config(void);
 #endif
 
+#ifdef CONFIG_DRIVER_TI_CPSW
+static void cpsw_pad_config(void);
+#endif
+
 static void unlock_pll_control_mmr(void);
 /*
  * spinning delay to use before udelay works
@@ -208,10 +212,14 @@ int misc_init_r (void)
 		"TI8148_EVM prompt if 2nd stage is already flashed\n");
 	#endif
 
+	/* Turn on LED1 and turn off LED0 to indicate we are past relocation */
+	status_led_set(0, STATUS_LED_OFF);
+	status_led_set(1, STATUS_LED_ON);
+
 	return 0;
 }
 
-static void config_asi1230_mddr(void)
+void config_asi1230_mddr(void)
 {
 	int macro, phy_num;
 
@@ -234,17 +242,17 @@ static void config_asi1230_mddr(void)
      * see 6.3.5.1 of TMS320DM814x TRM
      */
 	cmd_macro_config(DDR_PHY0, DDR3_PHY_INVERT_CLKOUT_OFF,
-			DDR3_PHY_CTRL_SLAVE_RATIO_CS0_DEFINE,
+			DDR2_PHY_CTRL_SLAVE_RATIO_CS0_DEFINE,
 			PHY_CMD0_DLL_LOCK_DIFF_DEFINE);
 
     /* Init only PHY0 */
     phy_num = 0;
 	for (macro = 0; macro <= DATA_MACRO_3; macro++) {
 		data_macro_config(macro, phy_num,
-                		DDR3_PHY_RD_DQS_CS0_DEFINE,
-	    				DDR3_PHY_WR_DQS_CS0_DEFINE,
-	    				DDR3_PHY_RD_DQS_GATE_CS0_DEFINE,
-	    				DDR3_PHY_WR_DATA_CS0_DEFINE);
+                		DDR2_PHY_RD_DQS_CS0_DEFINE,
+	    				DDR2_PHY_WR_DQS_CS0_DEFINE,
+	    				DDR2_PHY_RD_DQS_GATE_CS0_DEFINE,
+	    				DDR2_PHY_WR_DATA_CS0_DEFINE);
 	}
 
 	/* DDR IO CTRL config */
@@ -295,6 +303,16 @@ static void config_asi1230_mddr(void)
 
 	__raw_writel(mDDR_EMIF_REF_CTRL, EMIF4_0_SDRAM_REF_CTRL);
 	__raw_writel(mDDR_EMIF_REF_CTRL, EMIF4_0_SDRAM_REF_CTRL_SHADOW);
+
+    /* The first write/read results in garbage. Is there something wrong with
+        the dram controller's setup?
+
+        In the meantime we write, read and then wait a little before moving on.
+    */
+    *((ulong *)PHYS_DRAM_1) = 0xFFFFFFFF;
+    ulong tmp = *((ulong *)PHYS_DRAM_1);
+    tmp = 0;
+    delay(0xFFF);
 }
 
 #ifdef CONFIG_SETUP_PLL
@@ -526,7 +544,7 @@ void per_clocks_enable(void)
 
     /* GPIO0 */
     __raw_writel(0x102, CM_ALWON_GPIO_0_CLKCTRL);
-	while(__raw_readl(CM_ALWON_GPIO_0_CLKCTRL) != 0x2);
+	while(__raw_readl(CM_ALWON_GPIO_0_CLKCTRL) != 0x102);
     // GATINGRATIO 0x3: Functional clock is interface clock divided by 8
 	__raw_writel((0x3 << 1), GPIO0_BASE + GPIO_CTRL);
 
@@ -603,6 +621,131 @@ void prcm_init(u32 in_ddr)
 #endif
 }
 
+#ifdef CONFIG_DRIVER_TI_CPSW
+#define PADCTRL_BASE 0x48140000
+
+#define PAD204_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B2c))
+#define PAD205_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B30))
+#define PAD206_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B34))
+#define PAD207_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B38))
+#define PAD208_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B3c))
+#define PAD209_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B40))
+#define PAD210_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B44))
+#define PAD211_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B48))
+#define PAD212_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B4c))
+#define PAD213_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B50))
+#define PAD214_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B54))
+#define PAD215_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B58))
+#define PAD216_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B5c))
+#define PAD217_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B60))
+#define PAD218_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B64))
+#define PAD219_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B68))
+#define PAD220_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B6c))
+#define PAD221_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B70))
+#define PAD222_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B74))
+#define PAD223_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B78))
+#define PAD224_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B7c))
+#define PAD225_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B80))
+#define PAD226_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B84))
+#define PAD227_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B88))
+
+#define PAD232_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B9C))
+#define PAD233_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BA0))
+#define PAD234_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BA4))
+#define PAD235_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BA8))
+#define PAD236_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BAC))
+#define PAD237_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BB0))
+#define PAD238_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BB4))
+#define PAD239_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BB8))
+#define PAD240_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BBC))
+#define PAD241_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BC0))
+#define PAD242_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BC4))
+#define PAD243_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BC8))
+#define PAD244_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BCC))
+#define PAD245_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BD0))
+#define PAD246_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BD4))
+#define PAD247_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BD8))
+#define PAD248_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BDC))
+#define PAD249_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BE0))
+#define PAD250_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BE4))
+#define PAD251_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BE8))
+#define PAD252_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BEC))
+#define PAD253_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BF0))
+#define PAD254_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BF4))
+#define PAD255_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BF8))
+#define PAD256_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BFC))
+#define PAD257_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0C00))
+#define PAD258_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0C04))
+
+
+static void cpsw_pad_config()
+{
+	volatile u32 val = 0;
+
+	/*configure pin mux for rmii_refclk,mdio_clk,mdio_d */
+	val = PAD232_CNTRL;
+	PAD232_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+	val = PAD233_CNTRL;
+	PAD233_CNTRL = (volatile unsigned int) (BIT(19) | BIT(17) | BIT(0));
+	val = PAD234_CNTRL;
+	PAD234_CNTRL = (volatile unsigned int) (BIT(19) | BIT(18) | BIT(17) |
+			BIT(0));
+
+    /*setup rgmii0/rgmii1 pins here*/
+	
+	/* In this case we enable rgmii_en bit in GMII_SEL register and
+	 * still program the pins in gmii mode: gmii0 pins in mode 1*/
+	val = PAD235_CNTRL; /*rgmii0_rxc*/
+	PAD235_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+	val = PAD236_CNTRL; /*rgmii0_rxctl*/
+	PAD236_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+	val = PAD237_CNTRL; /*rgmii0_rxd[2]*/
+	PAD237_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+	val = PAD238_CNTRL; /*rgmii0_txctl*/
+	PAD238_CNTRL = (volatile unsigned int) BIT(0);
+	val = PAD239_CNTRL; /*rgmii0_txc*/
+	PAD239_CNTRL = (volatile unsigned int) BIT(0);
+	val = PAD240_CNTRL; /*rgmii0_txd[0]*/
+	PAD240_CNTRL = (volatile unsigned int) BIT(0);
+	val = PAD241_CNTRL; /*rgmii0_rxd[0]*/
+	PAD241_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+	val = PAD242_CNTRL; /*rgmii0_rxd[1]*/
+	PAD242_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+	val = PAD243_CNTRL; /*rgmii1_rxctl*/
+	PAD243_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+	val = PAD244_CNTRL; /*rgmii0_rxd[3]*/
+	PAD244_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+	val = PAD245_CNTRL; /*rgmii0_txd[3]*/
+	PAD245_CNTRL = (volatile unsigned int) BIT(0);
+	val = PAD246_CNTRL; /*rgmii0_txd[2]*/
+	PAD246_CNTRL = (volatile unsigned int) BIT(0);
+	val = PAD247_CNTRL; /*rgmii0_txd[1]*/
+	PAD247_CNTRL = (volatile unsigned int) BIT(0);
+	val = PAD248_CNTRL; /*rgmii1_rxd[1]*/
+	PAD248_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+	val = PAD249_CNTRL; /*rgmii1_rxc*/
+	PAD249_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+	val = PAD250_CNTRL; /*rgmii1_rxd[3]*/
+	PAD250_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+	val = PAD251_CNTRL; /*rgmii1_txd[1]*/
+	PAD251_CNTRL = (volatile unsigned int) (BIT(0));
+	val = PAD252_CNTRL; /*rgmii1_txctl*/
+	PAD252_CNTRL = (volatile unsigned int) (BIT(0));
+	val = PAD253_CNTRL; /*rgmii1_txd[0]*/
+	PAD253_CNTRL = (volatile unsigned int) (BIT(0));
+	val = PAD254_CNTRL; /*rgmii1_txd[2]*/
+	PAD254_CNTRL = (volatile unsigned int) (BIT(0));
+	val = PAD255_CNTRL; /*rgmii1_txc*/
+	PAD255_CNTRL = (volatile unsigned int) (BIT(0));
+	val = PAD256_CNTRL; /*rgmii1_rxd[0]*/
+	PAD256_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+	val = PAD257_CNTRL; /*rgmii1_txd[3]*/
+	PAD257_CNTRL = (volatile unsigned int) (BIT(0));
+	val = PAD258_CNTRL; /*rgmii1_rxd[2]*/
+	PAD258_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+}
+#endif
+
 /*
  * board specific muxing of pins
  */
@@ -611,14 +754,13 @@ struct pad_mux {
     u32 val;
 };
 
-static struct pad_mux pad_conf[] = {
-#       include "mux.h"
-        {0} // End Of List marker
-	};
-
 void set_muxconf_regs(void)
 {
 	u32 i = 0, add, val;
+	struct pad_mux pad_conf[] = {
+	#       include "mux.h"
+	        {0} // End Of List marker
+		};
 	while ((add = pad_conf[i].addr) != 0x0) {
 		val = __raw_readl(add);
 		val |= pad_conf[i].val;
@@ -670,15 +812,21 @@ void s_init(u32 in_ddr)
 	*/
 	set_muxconf_regs();
 
-	/* Turn on LED0 to indicate we are alive *before* attempting to init DRAM */
-	status_led_set(STATUS_LED_BIT, STATUS_LED_ON);
+    /* Status LED API cannot be used before DRAM is initialized,
+       so we call out backend directly
+    */
+    __led_init(STATUS_LED_BIT, STATUS_LED_ON);
+    __led_init(STATUS_LED_BIT1, STATUS_LED_ON);
+    __led_init(STATUS_LED_BIT2, STATUS_LED_ON);
+    __led_init(STATUS_LED_BIT3, STATUS_LED_ON);
 
 	if (!in_ddr)
 		config_asi1230_mddr();	/* Do DDR settings */
 
-	/* Turn on LED1 and turn off LED0 to indicate we completed DRAM init */
-	status_led_set(STATUS_LED_BIT, STATUS_LED_OFF);
-	status_led_set(STATUS_LED_BIT1, STATUS_LED_ON);
+	status_led_set(0, STATUS_LED_ON);
+    status_led_set(1, STATUS_LED_OFF);
+    status_led_set(2, STATUS_LED_OFF);
+    status_led_set(3, STATUS_LED_OFF);
 }
 
 /*
@@ -811,7 +959,7 @@ int board_eth_init(bd_t *bis)
 	u_int8_t mac_addr[6];
 	u_int32_t mac_hi,mac_lo;
 
-	cpsw_pad_config();
+	//cpsw_pad_config();
 
 	if (!eth_getenv_enetaddr("ethaddr", mac_addr)) {
 		char mac_addr_env[20];
@@ -851,46 +999,6 @@ int board_eth_init(bd_t *bis)
 }
 #endif
 
-#ifdef CONFIG_NAND_TI81XX
-/******************************************************************************
- * Command to switch between NAND HW and SW ecc
- *****************************************************************************/
-extern void ti81xx_nand_switch_ecc(nand_ecc_modes_t hardware, int32_t mode);
-static int do_switch_ecc(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
-{
-	int type = 0;
-	if (argc < 2)
-		goto usage;
-
-	if (strncmp(argv[1], "hw", 2) == 0) {
-		if (argc == 3)
-			type = simple_strtoul(argv[2], NULL, 10);
-		ti81xx_nand_switch_ecc(NAND_ECC_HW, type);
-	}
-	else if (strncmp(argv[1], "sw", 2) == 0)
-		ti81xx_nand_switch_ecc(NAND_ECC_SOFT, 0);
-	else
-		goto usage;
-
-	return 0;
-
-usage:
-	printf ("Usage: nandecc %s\n", cmdtp->usage);
-	return 1;
-}
-
-U_BOOT_CMD(
-	nandecc, 3, 1,	do_switch_ecc,
-	"Switch NAND ECC calculation algorithm b/w hardware and software",
-	"[sw|hw <hw_type>] \n"
-	"   [sw|hw]- Switch b/w hardware(hw) & software(sw) ecc algorithm\n"
-	"   hw_type- 0 for Hamming code\n"
-	"            1 for bch4\n"
-	"            2 for bch8\n"
-	"            3 for bch16\n"
-);
-
-#endif /* CONFIG_NAND_TI81XX */
 
 #ifdef CONFIG_GENERIC_MMC
 int board_mmc_init(bd_t *bis)

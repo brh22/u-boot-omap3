@@ -28,23 +28,32 @@
 #define CONFIG_STATUS_LED               1
 #define CONFIG_BOARD_SPECIFIC_LED       1
 /* Define 4 LEDs (the maximum supported by the API) */
-#define STATUS_LED_BIT          0
-#define STATUS_LED_STATE        STATUS_LED_ON
+#define STATUS_LED_BIT          2
+#define STATUS_LED_STATE        STATUS_LED_OFF
 #define STATUS_LED_PERIOD       0
-#define STATUS_LED_BIT1         1
+#define STATUS_LED_BIT1         4
 #define STATUS_LED_STATE1       STATUS_LED_OFF
 #define STATUS_LED_PERIOD1      0
-#define STATUS_LED_BIT2         2
+#define STATUS_LED_BIT2         8
 #define STATUS_LED_STATE2       STATUS_LED_OFF
 #define STATUS_LED_PERIOD2      0
-#define STATUS_LED_BIT3         3
+#define STATUS_LED_BIT3         16
 #define STATUS_LED_STATE3       STATUS_LED_OFF
 #define STATUS_LED_PERIOD3      0
 
 /* In the 1st stage we have just 110K, so cut down wherever possible */
 #ifdef CONFIG_TI814X_MIN_CONFIG
 
+# define CONFIG_CMDLINE_TAG        	1	/* enable passing of ATAGs  */
+# define CONFIG_SETUP_MEMORY_TAGS  	1
+# define CONFIG_INITRD_TAG	  	1	/* Required for ramdisk support */
+
+# define CONFIG_MMC			1
+# define CONFIG_SPI			1
+
 # define CONFIG_CMD_MEMORY	/* for mtest */
+# define CONFIG_SYS_ALT_MEMTEST
+# define CONFIG_SYS_MEMTEST_SCRATCH (PHYS_DRAM_1)
 # undef CONFIG_GZIP
 # undef CONFIG_ZLIB
 //# undef CONFIG_BOOTM_LINUX
@@ -63,9 +72,9 @@
  */ 
 # define CONFIG_ENV_SIZE		0x400
 # define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (8 * 1024))
-# define CONFIG_SYS_PROMPT		"TI-MIN#"
+# define CONFIG_SYS_PROMPT		"ASI1230-MIN#"
 /* set to negative value for no autoboot */
-# define CONFIG_BOOTDELAY		0
+# define CONFIG_BOOTDELAY		3
 # if defined(CONFIG_SPI_BOOT)		/* Autoload the 2nd stage from SPI */
 #  define CONFIG_SPI			1
 #  define CONFIG_EXTRA_ENV_SETTINGS \
@@ -87,7 +96,7 @@
 #elif defined(CONFIG_UART_BOOT)                /* stop in the min prompt */
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"verify=yes\0" \
-	"bootcmd=\0" \
+	"bootcmd=mmc rescan 0; fatload mmc 0 0x80800000 u-boot.bin; go 0x80800000\0" \
 
 # endif
 
@@ -99,7 +108,7 @@
 # define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (32 * 1024))
 # define CONFIG_ENV_OVERWRITE
 # define CONFIG_SYS_LONGHELP
-# define CONFIG_SYS_PROMPT		"TI8148_EVM#"
+# define CONFIG_SYS_PROMPT		"ASI1230#"
 # define CONFIG_SYS_HUSH_PARSER		/* Use HUSH parser to allow command parsing */
 # define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
 # define CONFIG_CMDLINE_TAG        	1	/* enable passing of ATAGs  */
@@ -108,7 +117,6 @@
 # define CONFIG_BOOTDELAY		3	/* set to negative value for no autoboot */
 /* By default, 2nd stage will have MMC, NAND, SPI and I2C support */
 # define CONFIG_MMC			1
-# define CONFIG_NAND			1
 # define CONFIG_SPI			1
 # define CONFIG_I2C			1
 # define CONFIG_EXTRA_ENV_SETTINGS \
@@ -145,6 +153,7 @@
 #define CONFIG_SYS_AUTOLOAD		"yes"
 #define CONFIG_CMD_CACHE
 #define CONFIG_CMD_ECHO
+#define CONFIG_CMD_SAVEENV
 
 /*
  * Miscellaneous configurable options
@@ -159,10 +168,25 @@
 					+ sizeof(CONFIG_SYS_PROMPT) + 16)
 /* Boot Argument Buffer Size */
 #define CONFIG_SYS_BARGSIZE		CONFIG_SYS_CBSIZE
-/* memtest works on 8 MB in DRAM after skipping 32MB from start addr of ram disk*/
-#define CONFIG_SYS_MEMTEST_START	(PHYS_DRAM_1)
-#define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_MEMTEST_START \
-					+ (8 * 1024 * 1024))
+
+#if (TEXT_BASE == 0x40300000) /* Run mtests from OCMC RAM */
+#   ifdef CONFIG_SYS_ALT_MEMTEST
+/* The first dword in memory is used as scratchpad when 
+   using the alternative test mode
+*/
+#       define CONFIG_SYS_MEMTEST_START	(PHYS_DRAM_1+4)
+#   else
+#       define CONFIG_SYS_MEMTEST_START	(PHYS_DRAM_1)
+#   endif //CONFIG_SYS_ALT_MEMTEST
+/* When running from OCMC RAM we can test the entire address space */
+#define CONFIG_SYS_MEMTEST_END		(PHYS_DRAM_1 \
+					                    + PHYS_DRAM_1_SIZE - 1)
+#else
+/* memtest works on 32 MB in DRAM */
+#   define CONFIG_SYS_MEMTEST_START	(CONFIG_SYS_LOAD_ADDR)
+#   define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_LOAD_ADDR \
+					                    + (32 * 1024 * 1024))
+#endif /* Run mtests from OCMC RAM */
 
 #undef  CONFIG_SYS_CLKS_IN_HZ				/* everything, incl board info, in Hz */
 #define CONFIG_SYS_LOAD_ADDR		0x81000000  	/* Default load address */
@@ -173,9 +197,9 @@
 /**
  * Physical Memory Map
  */
-#define CONFIG_NR_DRAM_BANKS	1	        /* we have 2 banks of DRAM */
+#define CONFIG_NR_DRAM_BANKS	1	        /* we have 1 bank of DRAM */
 #define PHYS_DRAM_1			    0x80000000	/* DRAM Bank #1 */
-#define PHYS_DRAM_1_SIZE		0x08000000	/* 64MBytes */
+#define PHYS_DRAM_1_SIZE		0x4000000	/* 64MBytes */
 
 
 /**
@@ -271,11 +295,12 @@ extern unsigned int boot_flash_type;
 /* SPI support */
 #ifdef CONFIG_SPI
 #define CONFIG_OMAP3_SPI
+#define CONFIG_OMAP3_SPI_REVERSE_DATAPINS
 #define CONFIG_MTD_DEVICE
 #define CONFIG_SPI_FLASH
-#define CONFIG_SPI_FLASH_WINBOND
+#define CONFIG_SPI_FLASH_STMICRO
 #define CONFIG_CMD_SF
-#define CONFIG_SF_DEFAULT_SPEED	(75000000)
+#define CONFIG_SF_DEFAULT_SPEED	(48000000)
 #endif
 
 /* ENV in SPI */
@@ -284,13 +309,15 @@ extern unsigned int boot_flash_type;
 # define CONFIG_ENV_IS_IN_SPI_FLASH	1
 # ifdef CONFIG_ENV_IS_IN_SPI_FLASH
 #  define CONFIG_SYS_FLASH_BASE		(0)
-#  define SPI_FLASH_ERASE_SIZE		(4 * 1024) /* sector size of SPI flash */
-#  define CONFIG_SYS_ENV_SECT_SIZE	(2 * SPI_FLASH_ERASE_SIZE) /* env size */
+#  define SPI_FLASH_ERASE_SIZE		(512 * 1024) /* sector size of SPI flash */
+#  define CONFIG_SYS_ENV_SECT_SIZE	(1 * SPI_FLASH_ERASE_SIZE) /* env size */
 #  define CONFIG_ENV_SECT_SIZE		(CONFIG_SYS_ENV_SECT_SIZE)
-#  define CONFIG_ENV_OFFSET		(96 * SPI_FLASH_ERASE_SIZE)
+#  define CONFIG_ENV_OFFSET		(16 * SPI_FLASH_ERASE_SIZE)
 #  define CONFIG_ENV_ADDR		(CONFIG_ENV_OFFSET)
-#  define CONFIG_SYS_MAX_FLASH_SECT	(1024) /* no of sectors in SPI flash */
+#  define CONFIG_SYS_MAX_FLASH_SECT	(32) /* no of sectors in SPI flash */
 #  define CONFIG_SYS_MAX_FLASH_BANKS	(1)
+# undef CONFIG_SYS_MALLOC_LEN
+# define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SECT_SIZE + (8 * 1024))
 # endif
 #endif /* SPI support */
 
