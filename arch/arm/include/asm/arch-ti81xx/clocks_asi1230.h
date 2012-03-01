@@ -45,6 +45,7 @@
 #define DDR_M2		2
 #define DDR_CLKCTRL	0x801
 
+/* DSP clock is 20 / (19+1) * 500 / 1 = 500MHz */
 #define DSP_N		19
 #define DSP_M		500
 #define DSP_M2		1
