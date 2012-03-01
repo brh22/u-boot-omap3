@@ -3200,6 +3200,87 @@ s5p_goni_config:	unconfig
 smdkc100_config:	unconfig
 	@$(MKCONFIG) $(@:_config=) arm arm_cortexa8 smdkc100 samsung s5pc1xx
 
+asi1230_config: unconfig
+	@mkdir -p $(obj)include
+	@echo "#define DEBUG"	>>$(obj)include/config.h
+	@echo "#define CONFIG_ASI1230"	>>$(obj)include/config.h
+	@echo "#define CONFIG_TI81XX"	>>$(obj)include/config.h
+	@echo "#define CONFIG_TI814X"	>>$(obj)include/config.h
+	@echo "TEXT_BASE = 0x80700000" >> $(obj)board/asi1230/config.tmp
+#	@echo "#define CONFIG_NO_ETH"    >>$(obj)include/config.h
+	@echo "Setting up TI8148 minimal build for 1st stage..."
+	@echo "#define CONFIG_SD_BOOT"    >>$(obj)include/config.h
+	@echo "#define CONFIG_SYS_NO_FLASH"    >>$(obj)include/config.h
+	@echo "#define CONFIG_SPI_ENV"    >>$(obj)include/config.h
+	@echo "TI_IMAGE = u-boot.sd" >> $(obj)board/asi1230/config.tmp
+	@$(MKCONFIG) -a asi1230 arm arm_cortexa8 asi1230 NULL ti81xx
+
+asi1230_uart_config: unconfig
+	@mkdir -p $(obj)include
+	@echo "#define CONFIG_ASI1230"	>>$(obj)include/config.h
+	@echo "#define CONFIG_TI81XX"	>>$(obj)include/config.h
+	@echo "#define CONFIG_TI814X"	>>$(obj)include/config.h
+	@echo "TEXT_BASE = 0x80700000" >> $(obj)board/asi1230/config.tmp
+	@echo "#define CONFIG_NO_ETH"    >>$(obj)include/config.h
+	@echo "Setting up TI8148 minimal build for 1st stage..."
+	@echo "#define CONFIG_TI81XX_PERIPHERAL_BOOT"    >>$(obj)include/config.h
+	@echo "#define CONFIG_UART_BOOT"    >>$(obj)include/config.h
+	@echo "#define CONFIG_SYS_NO_FLASH"    >>$(obj)include/config.h
+	@echo "#define CONFIG_SPI_ENV"    >>$(obj)include/config.h
+	@echo "TI_IMAGE = u-boot.uart" >> $(obj)board/asi1230/config.tmp
+	@$(MKCONFIG) -a asi1230 arm arm_cortexa8 asi1230 NULL ti81xx
+
+asi1230_min_config: unconfig
+	@mkdir -p $(obj)include
+	@echo "#define CONFIG_ASI1230"	>>$(obj)include/config.h
+	@echo "#define CONFIG_TI81XX"	>>$(obj)include/config.h
+	@echo "#define CONFIG_TI814X"	>>$(obj)include/config.h
+	@echo "TEXT_BASE = 0x80700000" >> $(obj)board/asi1230/config.tmp
+	@echo "#define CONFIG_TI814X_MIN_CONFIG"    >>$(obj)include/config.h
+	@echo "#define CONFIG_NO_ETH"    >>$(obj)include/config.h
+	@echo "Setting up TI8148 minimal build for 1st stage..."
+	@echo "#define CONFIG_SD_BOOT"    >>$(obj)include/config.h
+	@echo "#define CONFIG_SYS_NO_FLASH"    >>$(obj)include/config.h
+#	@echo "#define CONFIG_SPI_ENV"    >>$(obj)include/config.h
+	@echo "TI_IMAGE = u-boot.min.sd" >> $(obj)board/asi1230/config.tmp
+	@$(MKCONFIG) -a asi1230 arm arm_cortexa8 asi1230 NULL ti81xx
+
+asi1230_uart_min_config: unconfig
+	@mkdir -p $(obj)include
+	@echo "#define DEBUG"	>>$(obj)include/config.h
+	@echo "#define CONFIG_ASI1230"	>>$(obj)include/config.h
+	@echo "#define CONFIG_TI81XX"	>>$(obj)include/config.h
+	@echo "#define CONFIG_TI814X"	>>$(obj)include/config.h
+#	@echo "TEXT_BASE = 0x40300000" >> $(obj)board/asi1230/config.tmp
+	@echo "TEXT_BASE = 0x80700000" >> $(obj)board/asi1230/config.tmp
+	@echo "#define CONFIG_TI814X_MIN_CONFIG"    >>$(obj)include/config.h
+	@echo "#define CONFIG_NO_ETH"    >>$(obj)include/config.h
+	@echo "Setting up TI8148 minimal build for 1st stage..."
+	@echo "#define CONFIG_TI81XX_PERIPHERAL_BOOT"    >>$(obj)include/config.h
+	@echo "#define CONFIG_UART_BOOT"    >>$(obj)include/config.h
+	@echo "#define CONFIG_SYS_NO_FLASH"    >>$(obj)include/config.h
+	@echo "#define CONFIG_SPI_ENV"    >>$(obj)include/config.h
+	@echo "TI_IMAGE = u-boot.min.uart" >> $(obj)board/asi1230/config.tmp
+	@$(MKCONFIG) -a asi1230 arm arm_cortexa8 asi1230 NULL ti81xx
+
+asi1230_spi_min_config: unconfig
+	@mkdir -p $(obj)include
+	@echo "#define DEBUG"	>>$(obj)include/config.h
+	@echo "#define CONFIG_ASI1230"	>>$(obj)include/config.h
+	@echo "#define CONFIG_TI81XX"	>>$(obj)include/config.h
+	@echo "#define CONFIG_TI814X"	>>$(obj)include/config.h
+#	@echo "TEXT_BASE = 0x40300000" >> $(obj)board/asi1230/config.tmp
+	@echo "TEXT_BASE = 0x80700000" >> $(obj)board/asi1230/config.tmp
+	@echo "#define CONFIG_TI814X_MIN_CONFIG"    >>$(obj)include/config.h
+	@echo "#define CONFIG_NO_ETH"    >>$(obj)include/config.h
+	@echo "Setting up TI8148 minimal build for 1st stage..."
+	@echo "#define CONFIG_SPI_BOOT" >>$(obj)include/config.h;
+	@echo "#define CONFIG_SYS_NO_FLASH"    >>$(obj)include/config.h
+	@echo "#define CONFIG_TI81XX_SPI_BOOT"	>>$(obj)include/config.h
+	@echo "#define CONFIG_SPI_ENV"    >>$(obj)include/config.h
+	@echo "TI_IMAGE = u-boot.min" >> $(obj)board/asi1230/config.tmp
+	@$(MKCONFIG) -a asi1230 arm arm_cortexa8 asi1230 NULL ti81xx
+
 ti8148_evm_config	\
 ti8148_evm_config_nand	\
 ti8148_evm_config_nor	\

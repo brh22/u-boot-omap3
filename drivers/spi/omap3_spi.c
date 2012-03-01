@@ -170,9 +170,20 @@ int spi_claim_bus(struct spi_slave *slave)
 	/* standard 4-wire master mode:  SCK, MOSI/out, MISO/in, nCS
 	 * REVISIT: this controller could support SPI_3WIRE mode.
 	 */
+#ifdef CONFIG_OMAP3_SPI_REVERSE_DATAPINS
+	/* Reverse OMAP3 de facto convention on SPI data pin direction.
+	 * In this configuration SPI[X]_D[0] is MOSI and SPI[X]_D[1] is MISO.
+	 *
+	 * NOTE: TI814X EVM schematic (erroneously) has the labels for MOSI and
+	 * MISO pins swapped.
+	 */
+	conf &= ~(OMAP3_MCSPI_CHCONF_DPE0);
+	conf |= OMAP3_MCSPI_CHCONF_IS | OMAP3_MCSPI_CHCONF_DPE1;
+#else
+	/* In this configuration SPI[X]_D[0] is MISO and SPI[X]_D[1] is MOSI. */
 	conf &= ~(OMAP3_MCSPI_CHCONF_IS|OMAP3_MCSPI_CHCONF_DPE1);
 	conf |= OMAP3_MCSPI_CHCONF_DPE0;
-
+#endif
 	/* wordlength */
 	conf &= ~OMAP3_MCSPI_CHCONF_WL_MASK;
 	conf |= (WORD_LEN - 1) << 7;
