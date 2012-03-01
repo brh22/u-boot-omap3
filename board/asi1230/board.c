@@ -22,8 +22,6 @@
 #include <asm/arch/clock.h>
 #include <asm/arch/mem.h>
 #include <asm/arch/nand.h>
-#include <linux/mtd/nand.h>
-#include <nand.h>
 #include <net.h>
 #include <miiphy.h>
 #include <netdev.h>
@@ -221,7 +219,7 @@ int misc_init_r (void)
 
 void config_asi1230_mddr(void)
 {
-	int macro, phy_num;
+	int macro, emif;
 
 	/*Enable the Power Domain Transition of L3 Fast Domain Peripheral*/
 	__raw_writel(0x2, CM_DEFAULT_FW_CLKCTRL);
@@ -246,9 +244,9 @@ void config_asi1230_mddr(void)
 			PHY_CMD0_DLL_LOCK_DIFF_DEFINE);
 
     /* Init only PHY0 */
-    phy_num = 0;
+    emif = 0;
 	for (macro = 0; macro <= DATA_MACRO_3; macro++) {
-		data_macro_config(macro, phy_num,
+		data_macro_config(macro, emif,
                 		DDR2_PHY_RD_DQS_CS0_DEFINE,
 	    				DDR2_PHY_WR_DQS_CS0_DEFINE,
 	    				DDR2_PHY_RD_DQS_GATE_CS0_DEFINE,
@@ -571,8 +569,8 @@ void per_clocks_enable(void)
 	 * ToDo :
 	 * This can be removed once kernel exports set_parent()
 	 */
-	__raw_writel(0x2, CM_ALWON_MCASP2_CLKCTRL);
-	while (__raw_readl(CM_ALWON_MCASP2_CLKCTRL) != 0x2);
+	__raw_writel(0x2, CM_AUDIOCLK_MCASP2_CLKSEL);
+	while (__raw_readl(CM_AUDIOCLK_MCASP2_CLKSEL) != 0x2);
 
 	/* WDT */
 	/* For WDT to be functional, it needs to be first stopped by writing
