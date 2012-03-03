@@ -202,10 +202,10 @@ int print_cpuinfo (void)
 		char *cpu_rev;
 
 		cpu_rev = cpu_rev_str[rev];
-		printf("%s-%s rev %s\n",
+		printf("CPU:   Texas Instruments %s-%s rev %s\n",
 			cpu_s, sec_s, cpu_rev);
 	} else {
-		printf("%s-%s rev ?????[%1x]\n",
+		printf("CPU:   Texas Instruments %s-%s rev ?????[%1x]\n",
 			cpu_s, sec_s, rev);
 	}
 	printf("\n");
