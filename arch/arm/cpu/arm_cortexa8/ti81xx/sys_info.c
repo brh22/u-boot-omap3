@@ -171,16 +171,16 @@ int print_cpuinfo (void)
 	rev = get_cpu_rev();
 	switch (get_cpu_type()) {
 	case TI8168:
-		cpu_s = "TI8168";
+		cpu_s = "TI816x";
 		break;
 	case TI8148:
-		cpu_s = "TI8148";
+		cpu_s = "TI814x";
 		break;
 	case DM385:
 		cpu_s = "DM385";
 		break;
 	case TI811X:
-		cpu_s = "TI811X";
+		cpu_s = "TI811x";
 		break;
 	default:
 		cpu_s = "Unknown cpu type";
@@ -249,13 +249,13 @@ int print_cpuinfo (void)
 	iss_freq = ((OSC_0_FREQ / (ISS_N + 1) * ISS_M) / ISS_M2);
 #endif
 #endif
-	printf("ARM clk: %dMHz\n", arm_freq);
-	printf("DDR clk: %dMHz\n", ddr_freq);
+	printf("       ARM Cortex A8 @ %dMHz\n", arm_freq);
+	printf("       DDR clk: %dMHz\n", ddr_freq);
 #ifdef CONFIG_DM385
-	printf("L3 clk: %dMHz\n", l3_freq);
-	printf("DSS clk: %dMHz\n", dss_freq);
-	printf("IVA clk: %dMHz\n", iva_freq);
-	printf("ISS clk: %dMHz\n", iss_freq);
+	printf("       L3 clk: %dMHz\n", l3_freq);
+	printf("       DSS clk: %dMHz\n", dss_freq);
+	printf("       IVA clk: %dMHz\n", iva_freq);
+	printf("       ISS clk: %dMHz\n", iss_freq);
 #endif
 	printf("\n");
 
