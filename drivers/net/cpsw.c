@@ -736,7 +736,7 @@ static int cpsw_init(struct eth_device *dev, bd_t *bis)
 	__raw_writel(0, &priv->regs->ptype);
 
 	/* enable statistics collection only on the host port */
-	__raw_writel(BIT(priv->host_port), &priv->regs->stat_port_en);
+	__raw_writel(BIT(priv->host_port+1), &priv->regs->stat_port_en);
 
 	cpsw_ale_port_state(priv, priv->host_port, ALE_PORT_STATE_FORWARD);
 	memcpy(priv->dev->enetaddr, cpsw_eth_mac_addr, 6);
