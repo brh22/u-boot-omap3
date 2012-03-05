@@ -41,17 +41,17 @@
 #define DISABLED 0
 #define FCN1 1
 #define FCN2 2
-#define FCN3 4
-#define FCN4 8
-#define FCN5 16
-#define FCN6 32
-#define FCN7 64
-#define FCN8 128
-#define IDIS (0 << 18)
-#define IEN (1 << 18)
-#define IPD (0 << 16)
-#define IPU (2 << 16)
-#define DIS (1 << 16)
+#define FCN3 3
+#define FCN4 4
+#define FCN5 5
+#define FCN6 6
+#define FCN7 7
+#define FCN8 8
+#define IDIS (0 << 6)
+#define IEN (1 << 6)
+#define IPD (0 << 4)
+#define IPU (2 << 4)
+#define DIS (1 << 4)
 
 /*
  * To get the physical address the offset has
@@ -323,7 +323,7 @@
 #define PINCNTL270                                0x0C34
 
 #define MUX_VAL(OFFSET,VALUE)\
-    {CTRL_BASE + (OFFSET), (VALUE)},
+    {(OFFSET), (VALUE)},
 
 MUX_VAL(PINCNTL1, (IEN | IPU | FCN1 )) /* SD1_CLK */\
 MUX_VAL(PINCNTL2, (IEN | IPU | FCN1 )) /* SD1_CMD_MUX0 */\

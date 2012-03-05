@@ -21,11 +21,14 @@
 #include <asm/arch/sys_proto.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/mem.h>
-#include <asm/arch/nand.h>
+#include <asm/arch/mmc.h>
+#include <status_led.h>
+
+#ifdef CONFIG_DRIVER_TI_CPSW
 #include <net.h>
 #include <miiphy.h>
 #include <netdev.h>
-#include <status_led.h>
+#endif //CONFIG_DRIVER_TI_CPSW
 
 #include "ddr_defs.h"
 
@@ -97,13 +100,13 @@ static void cmd_macro_config(u32 ddr_phy, u32 inv_clk_out,
 		 ddr_phy_base + CMD2_REG_PHY_DLL_LOCK_DIFF_0);
 }
 
-static void data_macro_config(u32 macro_num, u32 phy_num, u32 rd_dqs_cs0,
+static void data_macro_config(u32 macro_num, u32 emif, u32 rd_dqs_cs0,
 		u32 wr_dqs_cs0, u32 fifo_we_cs0, u32 wr_data_cs0)
 {
 	/* 0xA4 is size of each data macro mmr region.
 	 * phy1 is at offset 0x400 from phy0
 	 */
-	u32 base = (macro_num * 0xA4) + (phy_num * 0x400);
+	u32 base = (macro_num * 0xA4) + (emif * 0x400);
 
 	__raw_writel(((rd_dqs_cs0 << 10) | rd_dqs_cs0),
 		(DATA0_REG_PHY0_RD_DQS_SLAVE_RATIO_0 + base));
@@ -137,10 +140,6 @@ static void dsp_pll_config(void);
 static void iss_pll_config(void);
 static void iva_pll_config(void);
 static void usb_pll_config(void);
-#endif
-
-#ifdef CONFIG_DRIVER_TI_CPSW
-static void cpsw_pad_config(void);
 #endif
 
 static void unlock_pll_control_mmr(void);
@@ -619,150 +618,32 @@ void prcm_init(u32 in_ddr)
 #endif
 }
 
-#ifdef CONFIG_DRIVER_TI_CPSW
-#define PADCTRL_BASE 0x48140000
-
-#define PAD204_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B2c))
-#define PAD205_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B30))
-#define PAD206_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B34))
-#define PAD207_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B38))
-#define PAD208_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B3c))
-#define PAD209_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B40))
-#define PAD210_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B44))
-#define PAD211_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B48))
-#define PAD212_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B4c))
-#define PAD213_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B50))
-#define PAD214_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B54))
-#define PAD215_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B58))
-#define PAD216_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B5c))
-#define PAD217_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B60))
-#define PAD218_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B64))
-#define PAD219_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B68))
-#define PAD220_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B6c))
-#define PAD221_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B70))
-#define PAD222_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B74))
-#define PAD223_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B78))
-#define PAD224_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B7c))
-#define PAD225_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B80))
-#define PAD226_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B84))
-#define PAD227_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B88))
-
-#define PAD232_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0B9C))
-#define PAD233_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BA0))
-#define PAD234_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BA4))
-#define PAD235_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BA8))
-#define PAD236_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BAC))
-#define PAD237_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BB0))
-#define PAD238_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BB4))
-#define PAD239_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BB8))
-#define PAD240_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BBC))
-#define PAD241_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BC0))
-#define PAD242_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BC4))
-#define PAD243_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BC8))
-#define PAD244_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BCC))
-#define PAD245_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BD0))
-#define PAD246_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BD4))
-#define PAD247_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BD8))
-#define PAD248_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BDC))
-#define PAD249_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BE0))
-#define PAD250_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BE4))
-#define PAD251_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BE8))
-#define PAD252_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BEC))
-#define PAD253_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BF0))
-#define PAD254_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BF4))
-#define PAD255_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BF8))
-#define PAD256_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0BFC))
-#define PAD257_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0C00))
-#define PAD258_CNTRL  (*(volatile unsigned int *)(PADCTRL_BASE + 0x0C04))
-
-
-static void cpsw_pad_config()
-{
-	volatile u32 val = 0;
-
-	/*configure pin mux for rmii_refclk,mdio_clk,mdio_d */
-	val = PAD232_CNTRL;
-	PAD232_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-	val = PAD233_CNTRL;
-	PAD233_CNTRL = (volatile unsigned int) (BIT(19) | BIT(17) | BIT(0));
-	val = PAD234_CNTRL;
-	PAD234_CNTRL = (volatile unsigned int) (BIT(19) | BIT(18) | BIT(17) |
-			BIT(0));
-
-    /*setup rgmii0/rgmii1 pins here*/
-	
-	/* In this case we enable rgmii_en bit in GMII_SEL register and
-	 * still program the pins in gmii mode: gmii0 pins in mode 1*/
-	val = PAD235_CNTRL; /*rgmii0_rxc*/
-	PAD235_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-	val = PAD236_CNTRL; /*rgmii0_rxctl*/
-	PAD236_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-	val = PAD237_CNTRL; /*rgmii0_rxd[2]*/
-	PAD237_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-	val = PAD238_CNTRL; /*rgmii0_txctl*/
-	PAD238_CNTRL = (volatile unsigned int) BIT(0);
-	val = PAD239_CNTRL; /*rgmii0_txc*/
-	PAD239_CNTRL = (volatile unsigned int) BIT(0);
-	val = PAD240_CNTRL; /*rgmii0_txd[0]*/
-	PAD240_CNTRL = (volatile unsigned int) BIT(0);
-	val = PAD241_CNTRL; /*rgmii0_rxd[0]*/
-	PAD241_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-	val = PAD242_CNTRL; /*rgmii0_rxd[1]*/
-	PAD242_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-	val = PAD243_CNTRL; /*rgmii1_rxctl*/
-	PAD243_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-	val = PAD244_CNTRL; /*rgmii0_rxd[3]*/
-	PAD244_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-	val = PAD245_CNTRL; /*rgmii0_txd[3]*/
-	PAD245_CNTRL = (volatile unsigned int) BIT(0);
-	val = PAD246_CNTRL; /*rgmii0_txd[2]*/
-	PAD246_CNTRL = (volatile unsigned int) BIT(0);
-	val = PAD247_CNTRL; /*rgmii0_txd[1]*/
-	PAD247_CNTRL = (volatile unsigned int) BIT(0);
-	val = PAD248_CNTRL; /*rgmii1_rxd[1]*/
-	PAD248_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-	val = PAD249_CNTRL; /*rgmii1_rxc*/
-	PAD249_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-	val = PAD250_CNTRL; /*rgmii1_rxd[3]*/
-	PAD250_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-	val = PAD251_CNTRL; /*rgmii1_txd[1]*/
-	PAD251_CNTRL = (volatile unsigned int) (BIT(0));
-	val = PAD252_CNTRL; /*rgmii1_txctl*/
-	PAD252_CNTRL = (volatile unsigned int) (BIT(0));
-	val = PAD253_CNTRL; /*rgmii1_txd[0]*/
-	PAD253_CNTRL = (volatile unsigned int) (BIT(0));
-	val = PAD254_CNTRL; /*rgmii1_txd[2]*/
-	PAD254_CNTRL = (volatile unsigned int) (BIT(0));
-	val = PAD255_CNTRL; /*rgmii1_txc*/
-	PAD255_CNTRL = (volatile unsigned int) (BIT(0));
-	val = PAD256_CNTRL; /*rgmii1_rxd[0]*/
-	PAD256_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-	val = PAD257_CNTRL; /*rgmii1_txd[3]*/
-	PAD257_CNTRL = (volatile unsigned int) (BIT(0));
-	val = PAD258_CNTRL; /*rgmii1_rxd[2]*/
-	PAD258_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
-}
-#endif
-
 /*
  * board specific muxing of pins
  */
 struct pad_mux {
-    u32 addr;
-    u32 val;
+    u16 addr;
+    u8 val;
 };
 
 void set_muxconf_regs(void)
 {
-	u32 i = 0, add, val;
+	u32 i = 0, add, reg_val;
+    u8 tmp_val;
 	struct pad_mux pad_conf[] = {
-	#       include "mux.h"
-	        {0} // End Of List marker
-		};
+	#   include "mux.h"
+	    {0} // End Of List marker
+	};
+
 	while ((add = pad_conf[i].addr) != 0x0) {
-		val = __raw_readl(add);
-		val |= pad_conf[i].val;
-		__raw_writel(val, add);
+		reg_val = __raw_readl(CTRL_BASE + add);
+        tmp_val = pad_conf[i].val;
+		/* high nibble of val goes to bits [19:16] of register */
+		reg_val |= (tmp_val & 0xF0) << 16;
+		/* low nibble of val encodes pin mode selection */
+        tmp_val &= 0x0F;
+		reg_val |= tmp_val?(1 << (tmp_val-1)):0;
+		__raw_writel(reg_val, CTRL_BASE + add);
 		i++;
 	}
 	/* MMC/SD pull-down enable */
@@ -956,8 +837,6 @@ int board_eth_init(bd_t *bis)
 {
 	u_int8_t mac_addr[6];
 	u_int32_t mac_hi,mac_lo;
-
-	//cpsw_pad_config();
 
 	if (!eth_getenv_enetaddr("ethaddr", mac_addr)) {
 		char mac_addr_env[20];
