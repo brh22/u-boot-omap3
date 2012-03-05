@@ -876,7 +876,7 @@ int cpsw_register(struct cpsw_platform_data *data)
 
 	for_each_slave(priv, cpsw_slave_setup, idx, priv);
 
-	strcpy(dev->name, "cpsw");
+	strcpy(dev->name, "CPSW");
 	dev->iobase	= 0;
 	dev->init	= cpsw_init;
 	dev->halt	= cpsw_halt;
