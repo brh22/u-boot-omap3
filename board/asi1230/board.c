@@ -639,7 +639,7 @@ void set_muxconf_regs(void)
 		reg_val = __raw_readl(CTRL_BASE + add);
         tmp_val = pad_conf[i].val;
 		/* high nibble of val goes to bits [19:16] of register */
-		reg_val |= (tmp_val & 0xF0) << 16;
+		reg_val |= (tmp_val & 0xF0) << 12;
 		/* low nibble of val encodes pin mode selection */
         tmp_val &= 0x0F;
 		reg_val |= tmp_val?(1 << (tmp_val-1)):0;
