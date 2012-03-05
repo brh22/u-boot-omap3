@@ -208,7 +208,6 @@ int print_cpuinfo (void)
 		printf("CPU:   Texas Instruments %s-%s rev ?????[%1x]\n",
 			cpu_s, sec_s, rev);
 	}
-	printf("\n");
 
 	/* ARM and DDR frequencies */
 
@@ -251,7 +250,6 @@ int print_cpuinfo (void)
 	printf("       IVA clk: %dMHz\n", iva_freq);
 	printf("       ISS clk: %dMHz\n", iss_freq);
 #endif
-	printf("\n");
 
 	return 0;
 }
