@@ -3202,7 +3202,7 @@ smdkc100_config:	unconfig
 
 asi1230_config: unconfig
 	@mkdir -p $(obj)include
-	@echo "#define DEBUG"	>>$(obj)include/config.h
+#	@echo "#define DEBUG"	>>$(obj)include/config.h
 	@echo "#define CONFIG_ASI1230"	>>$(obj)include/config.h
 	@echo "#define CONFIG_TI81XX"	>>$(obj)include/config.h
 	@echo "#define CONFIG_TI814X"	>>$(obj)include/config.h
