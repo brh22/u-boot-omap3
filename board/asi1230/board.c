@@ -163,8 +163,10 @@ int board_init(void)
 	__raw_writel(0x4, RMII_REFCLK_SRC);
 
 	if (PG2_1 == get_cpu_rev()) {
-		/*program GMII_SEL register for RGMII mode */
-		__raw_writel(0x30a,GMII_SEL);
+		/* program GMII_SEL register for RGMII mode and
+		 * disable internal TX clock skew
+		 */
+		__raw_writel(0x33a,GMII_SEL);
 	}
 	/* Get Timer and UART out of reset */
 
@@ -721,24 +723,33 @@ void reset_cpu (ulong addr)
 
 #ifdef CONFIG_DRIVER_TI_CPSW
 
-#define PHY_CONF_REG           22
-#define PHY_CONF_TXCLKEN       (1 << 5)
+#define PHY_VSC8601_ID 0x00070421
+#define PHY_VSC8601_EXCTRL1_REG 0x17
+#define PHY_VSC8601_RXCLKSKEW 0x100
 
 /* TODO : Check for the board specific PHY */
 static void phy_init(char *name, int addr)
 {
 	unsigned short val;
 	unsigned int   cntr = 0;
+	unsigned int   phy_id = 0;
 
 	miiphy_reset(name, addr);
 
 	udelay(100000);
 
-	/* Enable PHY to clock out TX_CLK */
-	miiphy_read(name, addr, PHY_CONF_REG, &val);
-	val |= PHY_CONF_TXCLKEN;
-	miiphy_write(name, addr, PHY_CONF_REG, val);
-	miiphy_read(name, addr, PHY_CONF_REG, &val);
+	miiphy_read(name, addr, PHY_PHYIDR1, &val);
+	phy_id = (val << 16)  & 0xffff0000;
+	miiphy_read(name, addr, PHY_PHYIDR2, &val);
+	phy_id |= val & 0x0000ffff;
+
+	if (phy_id == PHY_VSC8601_ID) {
+		/* Enable RGMII RX clock skew */
+		miiphy_read(name, addr, PHY_VSC8601_EXCTRL1_REG, &val);
+		val |= PHY_VSC8601_RXCLKSKEW;
+		miiphy_write(name, addr, PHY_VSC8601_EXCTRL1_REG, val);
+		miiphy_read(name, addr, PHY_VSC8601_EXCTRL1_REG, &val);
+	}
 
 	/* Enable Autonegotiation */
 	if (miiphy_read(name, addr, PHY_BMCR, &val) != 0) {
