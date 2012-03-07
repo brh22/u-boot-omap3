@@ -52,6 +52,9 @@
 # define CONFIG_MMC			1
 # define CONFIG_SPI			1
 
+# define CONFIG_PREBOOT "mmc rescan 0; fatload mmc 0 0x80800000 u-boot.bin; go 0x80800000"
+
+
 # define CONFIG_CMD_MEMORY	/* for mtest */
 # define CONFIG_SYS_ALT_MEMTEST
 # define CONFIG_SYS_MEMTEST_SCRATCH (PHYS_DRAM_1)
