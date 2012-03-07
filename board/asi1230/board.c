@@ -744,7 +744,7 @@ static void phy_init(char *name, int addr)
 	phy_id |= val & 0x0000ffff;
 
 	if (phy_id == PHY_VSC8601_ID) {
-		/* Enable RGMII RX clock skew */
+		/* Enable RGMII RX/TX clock skew */
 		miiphy_read(name, addr, PHY_VSC8601_EXCTRL1_REG, &val);
 		val |= PHY_VSC8601_RXCLKSKEW;
 		miiphy_write(name, addr, PHY_VSC8601_EXCTRL1_REG, val);
