@@ -37,6 +37,7 @@ DECLARE_GLOBAL_DATA_PTR;
 /* TODO: move these constants to a better place */
 #define GPIO_CTRL       0x130
 #define GPIO_OE         0x134
+#define GPIO_DATAIN     0x138
 #define GPIO_DATAOUT    0x13C
 #define GPIO_CLEARDATAOUT 0x190
 #define GPIO_SETDATAOUT 0x194
@@ -68,6 +69,15 @@ void __led_set (led_id_t mask, int state)
         __raw_writel(o_reg_val, GPIO0_BASE + GPIO_CLEARDATAOUT);
     else
         __raw_writel(o_reg_val, GPIO0_BASE + GPIO_SETDATAOUT);
+}
+
+int is_eng_mode_enabled()
+{
+    /* Read UBOOTBY- GP0[5] to see if we should boot in eng mode */
+    if (__raw_readl(GPIO0_BASE + GPIO_DATAIN) & (1 << 5))
+        return 0;
+    else
+        return 1;
 }
 
 /*  */
@@ -206,9 +216,11 @@ int dram_init(void)
 int misc_init_r (void)
 {
 	#ifdef CONFIG_TI814X_MIN_CONFIG
-	printf("The 2nd stage U-Boot will now be auto-loaded\n");
-	printf("Please do not interrupt the countdown till "
-		"TI8148_EVM prompt if 2nd stage is already flashed\n");
+	/* If eng mode is enabled do not execute preboot but rather bootdelay/console */
+	if (is_eng_mode_enabled()) {
+        setenv("preboot", "\0");
+        printf("Booting in engineering mode\n");
+	}
 	#endif
 
 	/* Turn on LED1 and turn off LED0 to indicate we are past relocation */
