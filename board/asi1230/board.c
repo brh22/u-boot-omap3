@@ -249,7 +249,7 @@ void config_asi1230_mddr(void)
 	/* while ((__raw_readl(CM_DEFAULT_EMIF_1_CLKCTRL)) != 0x2); no EMIF1 */
 	while ((__raw_readl(CM_DEFAULT_DMM_CLKCTRL)) != 0x2);
 
-    /* No need to enable the memory clock inversion feature, 
+    /* No need to enable the memory clock inversion feature,
      * see 6.3.5.1 of TMS320DM814x TRM
      */
 	cmd_macro_config(DDR_PHY0, DDR3_PHY_INVERT_CLKOUT_OFF,
@@ -700,7 +700,7 @@ void s_init(u32 in_ddr)
 	unlock_pll_control_mmr();
 	/* Setup the PLLs and the clocks for the peripherals */
 	prcm_init(in_ddr);
-	/* Do the required pin-muxing before modules are setup 
+	/* Do the required pin-muxing before modules are setup
 	   (move this back to the beginning of board_init() if it is too early).
 	*/
 	set_muxconf_regs();
@@ -737,6 +737,7 @@ void reset_cpu (ulong addr)
 
 #define PHY_VSC8601_ID 0x00070421
 #define PHY_VSC8601_EXCTRL1_REG 0x17
+#define PHY_VSC8601_LEDCTRL_REG 0x1B
 #define PHY_VSC8601_RXCLKSKEW 0x100
 
 /* TODO : Check for the board specific PHY */
@@ -761,6 +762,12 @@ static void phy_init(char *name, int addr)
 		val |= PHY_VSC8601_RXCLKSKEW;
 		miiphy_write(name, addr, PHY_VSC8601_EXCTRL1_REG, val);
 		miiphy_read(name, addr, PHY_VSC8601_EXCTRL1_REG, &val);
+
+		/* Blink RJ-45 activity LED at a 10Hz rate */
+		miiphy_read(name, addr, PHY_VSC8601_LEDCTRL_REG, &val);
+		val |= 0x06;
+		miiphy_write(name, addr, PHY_VSC8601_LEDCTRL_REG, val);
+		miiphy_read(name, addr, PHY_VSC8601_LEDCTRL_REG, &val);
 	}
 
 	/* Enable Autonegotiation */
