@@ -174,6 +174,10 @@ int print_cpuinfo (void)
 		cpu_s = "TI816x";
 		break;
 	case TI8148:
+		/* determine if C6A814x or DM814x (or AM387x?)
+		 - DM814x has HDVICPv2
+		 - C6A814x does not have HDVICPv2
+		 */
 		cpu_s = "TI814x";
 		break;
 	case DM385:
