@@ -3042,6 +3042,7 @@ extern unsigned int __machine_arch_type;
 #define MACH_TYPE_PCONTROL_G20         3062
 #define MACH_TYPE_TI813XEVM             3900
 #define MACH_TYPE_TI811XEVM            3901
+#define MACH_TYPE_ASI1230              4066
 
 #ifdef CONFIG_ARCH_EBSA110
 # ifdef machine_arch_type
@@ -39401,6 +39402,18 @@ extern unsigned int __machine_arch_type;
 # define machine_is_ti811xevm()	(machine_arch_type == MACH_TYPE_TI811XEVM)
 #else
 # define machine_is_ti811xevm()	(0)
+#endif
+
+#ifdef CONFIG_MACH_ASI1230
+# ifdef machine_arch_type
+#  undef machine_arch_type
+#  define machine_arch_type	__machine_arch_type
+# else
+#  define machine_arch_type	MACH_TYPE_ASI1230
+# endif
+# define machine_is_asi1230()	(machine_arch_type == MACH_TYPE_ASI1230)
+#else
+# define machine_is_asi1230()	(0)
 #endif
 
 /*
