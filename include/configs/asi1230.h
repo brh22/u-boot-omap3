@@ -52,8 +52,8 @@
 # define CONFIG_MMC			1
 # define CONFIG_SPI			1
 
-# define CONFIG_PREBOOT "mmc rescan 0; fatload mmc 0 0x80800000 u-boot.bin; go 0x80800000"
-
+# define CONFIG_BOOTARGS "console=ttyO0,115200n8 rootwait root=/dev/mmcblk0p2 rw mem=64M earlyprink vram=4M ip=off noinitrd"
+# define CONFIG_PREBOOT "mmc rescan 0; fatload mmc 0 0x81000000 uImage; bootm 0x81000000"
 
 # define CONFIG_CMD_MEMORY	/* for mtest */
 # define CONFIG_SYS_ALT_MEMTEST
