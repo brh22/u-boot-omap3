@@ -215,17 +215,24 @@ int dram_init(void)
 
 int misc_init_r (void)
 {
-	#ifdef CONFIG_TI814X_MIN_CONFIG
+	/* Turn on LED1 and turn off LED0 to indicate we are past relocation */
+	status_led_set(0, STATUS_LED_OFF);
+	status_led_set(1, STATUS_LED_ON);
+
+#if defined(CONFIG_TI81XX_PCIE_BOOT) && defined(CONFIG_TI814X_MIN_CONFIG)
+	extern int pcie_init(void);
+	printf("\nSetting up for pcie boot...\n");
+	pcie_init();
+	return 0;
+#endif
+
+#ifdef CONFIG_TI814X_MIN_CONFIG
 	/* If eng mode is enabled do not execute preboot but rather bootdelay/console */
 	if (is_eng_mode_enabled()) {
         setenv("preboot", "\0");
         printf("Booting in engineering mode\n");
 	}
-	#endif
-
-	/* Turn on LED1 and turn off LED0 to indicate we are past relocation */
-	status_led_set(0, STATUS_LED_OFF);
-	status_led_set(1, STATUS_LED_ON);
+#endif
 
 	return 0;
 }
@@ -333,61 +340,6 @@ static void audio_pll_config()
 			AUDIO_N, AUDIO_M,
 			AUDIO_M2, AUDIO_CLKCTRL);
 }
-
-#if 0
-static void pcie_pll_config()
-{
-	/* Powerdown both reclkp/n single ended receiver */
-	__raw_writel(0x00000002, SERDES_REFCLK_CTRL);
-
-	__raw_writel(0x00000000, PCIE_PLLCFG0);
-
-	/* PCIe(2.5GHz) mode, 100MHz refclk, MDIVINT = 25,
-	 * disable (50,100,125M) clks
-	 */
-	__raw_writel(0x00640000, PCIE_PLLCFG1);
-
-	/* SSC Mantissa and exponent = 0 */
-	__raw_writel(0x00000000, PCIE_PLLCFG2);
-
-	/* TBD */
-	__raw_writel(0x004008E0, PCIE_PLLCFG3);
-
-	/* TBD */
-	__raw_writel(0x0000609C, PCIE_PLLCFG4);
-
-	/* pcie_serdes_cfg_misc */
-	/* TODO: verify the address over here
-	 * (CTRL_BASE + 0x6FC = 0x481406FC ???)
-	 */
-	//__raw_writel(0x00000E7B, 0x48141318);
-	delay(3);
-
-	/* Enable PLL LDO */
-	__raw_writel(0x00000004, PCIE_PLLCFG0);
-	delay(3);
-
-	/* Enable DIG LDO, PLL LD0 */
-	__raw_writel(0x00000014, PCIE_PLLCFG0);
-	delay(3);
-
-	/* Enable DIG LDO, ENBGSC_REF, PLL LDO */
-	__raw_writel(0x00000016, PCIE_PLLCFG0);
-	delay(3);
-	__raw_writel(0x30000016, PCIE_PLLCFG0);
-	delay(3);
-	__raw_writel(0x70000016, PCIE_PLLCFG0);
-	delay(3);
-
-	/* Enable DIG LDO, SELSC, ENBGSC_REF, PLL LDO */
-	__raw_writel(0x70000017, PCIE_PLLCFG0);
-	delay(3);
-
-	/* wait for ADPLL lock */
-	while(__raw_readl(PCIE_PLLSTATUS) != 0x1);
-
-}
-#endif
 
 static void sata_pll_config()
 {
@@ -613,9 +565,6 @@ void prcm_init(u32 in_ddr)
 	/* Setup the various plls */
 	audio_pll_config();
 	sata_pll_config();
-#if 0
-	pcie_pll_config();
-#endif
 	modena_pll_config();
 	l3_pll_config();
 	ddr_pll_config();
