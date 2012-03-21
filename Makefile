@@ -3245,6 +3245,22 @@ asi1230_min_config: unconfig
 	@echo "TI_IMAGE = u-boot.min.sd" >> $(obj)board/asi1230/config.tmp
 	@$(MKCONFIG) -a asi1230 arm arm_cortexa8 asi1230 NULL ti81xx
 
+asi1230_pcie_config: unconfig
+	@mkdir -p $(obj)include
+	@echo "#define CONFIG_ASI1230"	>>$(obj)include/config.h
+	@echo "#define CONFIG_TI81XX"	>>$(obj)include/config.h
+	@echo "#define CONFIG_TI814X"	>>$(obj)include/config.h
+	@echo "TEXT_BASE = 0x80700000" >> $(obj)board/asi1230/config.tmp
+	@echo "#define CONFIG_TI81XX_PCIE_BOOT" >>$(obj)include/config.h
+	@echo "#define CONFIG_TI814X_MIN_CONFIG"    >>$(obj)include/config.h
+	@echo "#define CONFIG_NO_ETH"    >>$(obj)include/config.h
+	@echo "#define TI81XX_PCIE_DBG"    >>$(obj)include/config.h
+	@echo "Setting up TI8148 minimal build for PCIe boot..."
+	@echo "#define CONFIG_SD_BOOT"    >>$(obj)include/config.h
+	@echo "#define CONFIG_SYS_NO_FLASH"    >>$(obj)include/config.h
+	@echo "TI_IMAGE = u-boot.pcie.sd" >> $(obj)board/asi1230/config.tmp
+	@$(MKCONFIG) -a asi1230 arm arm_cortexa8 asi1230 NULL ti81xx
+
 asi1230_uart_min_config: unconfig
 	@mkdir -p $(obj)include
 #	@echo "#define DEBUG"	>>$(obj)include/config.h
