@@ -212,12 +212,53 @@ int dram_init(void)
 	return 0;
 }
 
+void show_boot_progress(int status) {
+
+    if (status == BOOT_PROGRESS_HELLOWORLD) {
+        /* Status LED API cannot be used before DRAM is initialized,
+           so we call out backend directly
+        */
+        __led_init(STATUS_LED_BIT, STATUS_LED_ON);
+        __led_init(STATUS_LED_BIT1, STATUS_LED_ON);
+        __led_init(STATUS_LED_BIT2, STATUS_LED_ON);
+        __led_init(STATUS_LED_BIT3, STATUS_LED_ON);
+        return;
+    }
+
+    if (status == BOOT_PROGRESS_PASTDRAMINIT) {
+        status_led_set(0, STATUS_LED_ON);
+        status_led_set(1, STATUS_LED_OFF);
+        status_led_set(2, STATUS_LED_OFF);
+        status_led_set(3, STATUS_LED_OFF);
+        return;
+    }
+
+    if (status == BOOT_PROGRESS_PASTRELOC) {
+#ifdef CONFIG_TI814X_MIN_CONFIG
+        /* Turn on LED1 and turn off LED0 to indicate we are past relocation */
+        status_led_set(0, STATUS_LED_OFF);
+        status_led_set(1, STATUS_LED_ON);
+        status_led_set(2, STATUS_LED_OFF);
+        status_led_set(3, STATUS_LED_OFF);
+#else
+        /* Indicate we are running 2nd stage U-Boot */
+        status_led_set(0, STATUS_LED_OFF);
+        status_led_set(1, STATUS_LED_OFF);
+        status_led_set(2, STATUS_LED_ON);
+        status_led_set(3, STATUS_LED_OFF);
+#endif
+        return;
+    }
+
+    if (status < 0)
+    	status_led_set(0, STATUS_LED_OFF);
+    else
+        status_led_set(0, STATUS_LED_ON);
+}
 
 int misc_init_r (void)
 {
-	/* Turn on LED1 and turn off LED0 to indicate we are past relocation */
-	status_led_set(0, STATUS_LED_OFF);
-	status_led_set(1, STATUS_LED_ON);
+    show_boot_progress (BOOT_PROGRESS_PASTRELOC);
 
 #if defined(CONFIG_TI81XX_PCIE_BOOT) && defined(CONFIG_TI814X_MIN_CONFIG)
 	extern int pcie_init(void);
@@ -654,21 +695,14 @@ void s_init(u32 in_ddr)
 	*/
 	set_muxconf_regs();
 
-    /* Status LED API cannot be used before DRAM is initialized,
-       so we call out backend directly
-    */
-    __led_init(STATUS_LED_BIT, STATUS_LED_ON);
-    __led_init(STATUS_LED_BIT1, STATUS_LED_ON);
-    __led_init(STATUS_LED_BIT2, STATUS_LED_ON);
-    __led_init(STATUS_LED_BIT3, STATUS_LED_ON);
+    /* Indicate to the outside world that we are alive */
+    show_boot_progress (BOOT_PROGRESS_HELLOWORLD);
 
 	if (!in_ddr)
 		config_asi1230_mddr();	/* Do DDR settings */
 
-	status_led_set(0, STATUS_LED_ON);
-    status_led_set(1, STATUS_LED_OFF);
-    status_led_set(2, STATUS_LED_OFF);
-    status_led_set(3, STATUS_LED_OFF);
+    /* mDDR is initialized */
+    show_boot_progress (BOOT_PROGRESS_PASTDRAMINIT);
 }
 
 /*
