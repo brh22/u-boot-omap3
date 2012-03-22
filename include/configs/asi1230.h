@@ -18,6 +18,7 @@
 #define __CONFIG_TI8148_EVM_H
 
 #define CONFIG_SYS_THUMB_BUILD          1
+#define CONFIG_SHOW_BOOT_PROGRESS       1
 /*
  *#define CONFIG_TI814X_NO_RUNTIME_PG_DETECT
  */
@@ -41,6 +42,10 @@
 #define STATUS_LED_BIT3         16
 #define STATUS_LED_STATE3       STATUS_LED_OFF
 #define STATUS_LED_PERIOD3      0
+/* Define board specific boot progress constants */
+#define BOOT_PROGRESS_HELLOWORLD        (0x8000 | 1)
+#define BOOT_PROGRESS_PASTDRAMINIT      (0x8000 | 2)
+#define BOOT_PROGRESS_PASTRELOC         (0x8000 | 3)
 
 /* In the 1st stage we have just 110K, so cut down wherever possible */
 #ifdef CONFIG_TI814X_MIN_CONFIG
