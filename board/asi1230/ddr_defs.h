@@ -1,8 +1,8 @@
 
 #include <asm/arch/ddr_defs_ti814x.h>
 
-/* Values taken and adapterd from "IS43LR32160B: 4M x 32Bits x 4Banks Mobile
-   DDR SDRAM" datasheet. mDDR is clocked at 166MHz
+/* Values taken and adapted from "IS43LR32160B: 4M x 32Bits x 4Banks Mobile
+ * DDR SDRAM" datasheet. mDDR is clocked at 166MHz
 */
 
 #define CAS_LATENCY (3)
