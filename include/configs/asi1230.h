@@ -19,6 +19,7 @@
 
 #define CONFIG_SYS_THUMB_BUILD          1
 #define CONFIG_SHOW_BOOT_PROGRESS       1
+
 /*
  *#define CONFIG_TI814X_NO_RUNTIME_PG_DETECT
  */
@@ -50,6 +51,8 @@
 /* In the 1st stage we have just 110K, so cut down wherever possible */
 #ifdef CONFIG_TI814X_MIN_CONFIG
 
+# define CONFIG_SILENT_CONSOLE      1
+# define CONFIG_QUICK_INCLUDE       1
 # define CONFIG_CMDLINE_TAG        	1	/* enable passing of ATAGs  */
 # define CONFIG_SETUP_MEMORY_TAGS  	1
 # define CONFIG_INITRD_TAG	  	1	/* Required for ramdisk support */

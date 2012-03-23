@@ -3222,7 +3222,6 @@ asi1230_uart_config: unconfig
 	@echo "#define CONFIG_TI814X"	>>$(obj)include/config.h
 	@echo "TEXT_BASE = 0x80700000" >> $(obj)board/asi1230/config.tmp
 	@echo "#define CONFIG_NO_ETH"    >>$(obj)include/config.h
-	@echo "Setting up TI8148 minimal build for 1st stage..."
 	@echo "#define CONFIG_TI81XX_PERIPHERAL_BOOT"    >>$(obj)include/config.h
 	@echo "#define CONFIG_UART_BOOT"    >>$(obj)include/config.h
 	@echo "#define CONFIG_SYS_NO_FLASH"    >>$(obj)include/config.h
@@ -3275,7 +3274,6 @@ asi1230_uart_min_config: unconfig
 	@echo "#define CONFIG_TI81XX_PERIPHERAL_BOOT"    >>$(obj)include/config.h
 	@echo "#define CONFIG_UART_BOOT"    >>$(obj)include/config.h
 	@echo "#define CONFIG_SYS_NO_FLASH"    >>$(obj)include/config.h
-	@echo "#define CONFIG_SPI_ENV"    >>$(obj)include/config.h
 	@echo "TI_IMAGE = u-boot.min.uart" >> $(obj)board/asi1230/config.tmp
 	@$(MKCONFIG) -a asi1230 arm arm_cortexa8 asi1230 NULL ti81xx
 
