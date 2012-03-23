@@ -273,7 +273,12 @@ int misc_init_r (void)
         setenv("preboot", "\0");
         printf("Booting in engineering mode\n");
 	}
-#endif
+#ifndef DEBUG
+	else {
+    	gd->flags |= GD_FLG_SILENT;
+	}
+#endif // DEBUG
+#endif // CONFIG_TI814X_MIN_CONFIG
 
 	return 0;
 }
