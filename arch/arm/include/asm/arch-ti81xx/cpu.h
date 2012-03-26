@@ -283,6 +283,7 @@
 #endif
 
 /* PRCM */
+#define CM_CLKOUT_CTL			(PRCM_BASE + 0x0100)
 #define CM_DPLL_OFFSET			(PRCM_BASE + 0x0300)
 
 #ifdef CONFIG_TI816X
