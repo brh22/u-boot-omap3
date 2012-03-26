@@ -170,6 +170,14 @@ static inline void delay(unsigned long loops)
 		"bne 1b" : "=r" (loops) : "0"(loops));
 }
 
+#define CPTS_RFT_CLK_VIDEO0_PLL_OUT (0 << 1)
+#define CPTS_RFT_CLK_VIDEO1_PLL_OUT (1 << 1)
+#define CPTS_RFT_CLK_AUDIO_PLL_OUT (2 << 1)
+#define CPTS_RFT_CLK_VIDEO_PLL_CLK2 (3 << 1)
+#define CPTS_RFT_CLK_L3_PLL_OUT (4 << 1)
+
+#define CM_CLKOUT_CTL_SRC_VIDEO0_PLL 2
+
 /*
  * Basic board specific setup
  */
@@ -178,7 +186,14 @@ int board_init(void)
 	u32 regVal;
 
 	/* setup RMII_REFCLK to be sourced from audio_pll */
-	__raw_writel(0x4, RMII_REFCLK_SRC);
+	// __raw_writel(CPTS_RFT_CLK_AUDIO_PLL_OUT, RMII_REFCLK_SRC);
+	
+	/* setup RMII_REFCLK to be sourced from video0_pll (default)*/
+	__raw_writel(CPTS_RFT_CLK_VIDEO0_PLL_OUT, RMII_REFCLK_SRC);
+
+
+	/* Route enable /16 video0 pll out to clkout */
+	__raw_writel((1 << 7) + (4 << 3) + CM_CLKOUT_CTL_SRC_VIDEO0_PLL, CM_CLKOUT_CTL);
 
 	if (PG2_1 == get_cpu_rev()) {
 		/* program GMII_SEL register for RGMII mode and
@@ -391,6 +406,13 @@ void config_asi1230_mddr(void)
 static void audio_pll_config()
 {
 	pll_config(AUDIO_PLL_BASE,
+			AUDIO_N, AUDIO_M,
+			AUDIO_M2, AUDIO_CLKCTRL);
+}
+
+static void video0_pll_config()
+{
+	pll_config(VIDEO0_PLL_BASE,
 			AUDIO_N, AUDIO_M,
 			AUDIO_M2, AUDIO_CLKCTRL);
 }
@@ -618,6 +640,7 @@ void prcm_init(u32 in_ddr)
 #ifdef CONFIG_SETUP_PLL
 	/* Setup the various plls */
 	audio_pll_config();
+	video0_pll_config();
 	sata_pll_config();
 	modena_pll_config();
 	l3_pll_config();
