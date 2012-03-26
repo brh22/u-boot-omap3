@@ -23,6 +23,7 @@
 #include <asm/arch/mem.h>
 #include <asm/arch/mmc.h>
 #include <status_led.h>
+#include <ns16550.h>
 
 #ifdef CONFIG_DRIVER_TI_CPSW
 #include <net.h>
@@ -74,10 +75,17 @@ void __led_set (led_id_t mask, int state)
 int is_eng_mode_enabled()
 {
     /* Read UBOOTBY- GP0[5] to see if we should boot in eng mode */
-    if (__raw_readl(GPIO0_BASE + GPIO_DATAIN) & (1 << 5))
-        return 0;
-    else
+    int uboot_bypass = !(__raw_readl(GPIO0_BASE + GPIO_DATAIN) & (1 << 5));
+    if (uboot_bypass)
         return 1;
+
+    /* Read UART's 'break' indicator bit */
+    NS16550_t com_port = (NS16550_t)CONFIG_SYS_NS16550_COM1;
+    uboot_bypass = readb(&com_port->lsr) & UART_LSR_BI;
+    if (uboot_bypass)
+        return 1;
+    
+    return 0;
 }
 
 /*  */
