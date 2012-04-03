@@ -529,9 +529,13 @@ static void pll_config(u32 base, u32 n, u32 m, u32 m2, u32 clkctrl_val)
 	read_clkctrl = __raw_readl(base + ADPLLJ_CLKCTRL);
 
 	if (MODENA_PLL_BASE == base)
+		/* Clear IDLE bit, making PLL active */
 		__raw_writel((read_clkctrl & 0xff7fffff) | clkctrl_val,
 			base + ADPLLJ_CLKCTRL);
 	else
+		/* Clear IDLE and SELFREQDCO bits 
+		 * typical clkctrl_val 0x801 sets HS2 DCO range and TINITZ
+		*/
 		__raw_writel((read_clkctrl & 0xff7fe3ff) | clkctrl_val,
 			base + ADPLLJ_CLKCTRL);
 	/* Wait for phase and freq lock */
