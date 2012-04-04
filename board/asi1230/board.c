@@ -176,7 +176,12 @@ static inline void delay(unsigned long loops)
 #define CPTS_RFT_CLK_VIDEO_PLL_CLK2 (3 << 1)
 #define CPTS_RFT_CLK_L3_PLL_OUT (4 << 1)
 
-#define CM_CLKOUT_CTL_SRC_VIDEO0_PLL 2
+#define CM_CLKOUT_CTL_SOURCE_DEVOSC 0
+#define CM_CLKOUT_CTL_SOURCE_USB_PLL 1
+#define CM_CLKOUT_CTL_SOURCE_VIDEO0_PLL 2
+#define CM_CLKOUT_CTL_SOURCE_AUDIO_PLL 3
+#define CM_CLKOUT_CTL_DIV(ratio) (ratio << 3)
+#define CM_CLKOUT_CTL_ENABLE (1 << 7)
 
 /*
  * Basic board specific setup
@@ -192,8 +197,12 @@ int board_init(void)
 	__raw_writel(CPTS_RFT_CLK_VIDEO0_PLL_OUT, RMII_REFCLK_SRC);
 
 
-	/* Route enable /16 video0 pll out to clkout */
-	__raw_writel((1 << 7) + (4 << 3) + CM_CLKOUT_CTL_SRC_VIDEO0_PLL, CM_CLKOUT_CTL);
+	/* Note TRM description of CLKOUTDIV field is incorrect -
+	 * Ratio is (CLKOUTDIV+1)
+	 */
+	__raw_writel(CM_CLKOUT_CTL_ENABLE + CM_CLKOUT_CTL_DIV(7) + 
+			CM_CLKOUT_CTL_SOURCE_VIDEO0_PLL, 
+			CM_CLKOUT_CTL);
 
 	if (PG2_1 == get_cpu_rev()) {
 		/* program GMII_SEL register for RGMII mode and
@@ -617,6 +626,16 @@ void per_clocks_enable(void)
 	__raw_writel(0x2, CM_AUDIOCLK_MCASP2_CLKSEL);
 	while (__raw_readl(CM_AUDIOCLK_MCASP2_CLKSEL) != 0x2);
 
+	/* CLKOUT 1,0 MUX setup (TRMp522 */
+	#define CLKOUT_MUX_SOURCE_PRCM_SYSCLK_OUT 0
+	#define CLKOUT_MUX_SOURCE_L3_DPLL 5
+	#define CLKOUT_MUX_SOURCE_OSC0 6
+	#define CLKOUT_MUX_INIT ((CLKOUT_MUX_SOURCE_OSC0 << 16) +\
+			(CLKOUT_MUX_SOURCE_PRCM_SYSCLK_OUT << 0))
+
+	__raw_writel(CLKOUT_MUX_INIT, CLKOUT_MUX);
+	while (__raw_readl(CLKOUT_MUX) != CLKOUT_MUX_INIT);
+	
 	/* WDT */
 	/* For WDT to be functional, it needs to be first stopped by writing
 	 * the pattern 0xAAAA followed by 0x5555 in the WDT start/stop register.
