@@ -195,12 +195,11 @@ int board_init(void)
 	/* Route enable /16 video0 pll out to clkout */
 	__raw_writel((1 << 7) + (4 << 3) + CM_CLKOUT_CTL_SRC_VIDEO0_PLL, CM_CLKOUT_CTL);
 
-	if (PG2_1 == get_cpu_rev()) {
-		/* program GMII_SEL register for RGMII mode and
-		 * disable internal TX clock skew
-		 */
-		__raw_writel(0x33a,GMII_SEL);
-	}
+	/* program GMII_SEL register for RGMII mode and
+	 * disable internal TX clock skew
+	 */
+	__raw_writel(0x33a, GMII_SEL);
+
 	/* Get Timer and UART out of reset */
 
 	/* UART softreset */
