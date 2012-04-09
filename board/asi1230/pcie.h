@@ -30,7 +30,6 @@
  */
 #define TI814X_BOOTFLAG_ADDR				0x4031b7fc
 
-
 #define TI81XX_VENDORID		((unsigned int)0x104C)
 #define TI8148_DEVICEID		((unsigned int)0xB801)
 #define TI8148_ID		((unsigned int)(TI81XX_VENDORID  | TI8148_DEVICEID << 16))
@@ -44,17 +43,15 @@
 
 struct gpmc_config {
 	unsigned char boot_dev_size;
-        unsigned char cs0_mux_dev;
-        unsigned char boot_wait_en;
-        unsigned char wait_select;
+	unsigned char cs0_mux_dev;
+	unsigned char boot_wait_en;
+	unsigned char wait_select;
 };
 
 /*
  * PRCM control for enabling/resetting PCIe module
  */
 /* TODO: Add PRCM register address macros here */
-
-
 
 /*
  * Control module configuraiton regsiters needed to enable/set PCIe and sample
@@ -65,18 +62,16 @@ struct gpmc_config {
 #define	PCIE_CFG	0x480
 #define PCIE_PLLSTATUS  0x6EC
 #define PCIE_PLLCFG0 	0x6D8
-#define PCIE_PLLCFG1	0x6DC 
-#define PCIE_PLLCFG2	0x6E0 
-#define PCIE_PLLCFG3	0x6E4 
+#define PCIE_PLLCFG1	0x6DC
+#define PCIE_PLLCFG2	0x6E0
+#define PCIE_PLLCFG3	0x6E4
 #define PCIE_PLLCFG4	0x6E8
 #define SMA0		0x1318
-
 
 /*
  * PLL configuraiton regsiters and bitfields
  */
 /* TODO: Add PLL setting bits here */
-
 
 /*
  * PCIe registers
@@ -92,8 +87,8 @@ struct gpmc_config {
 #define OB_SIZE				0x030
 #define MSI_IRQ				0x054
 #define GPR0				0x70
-#define OB_OFFSET_INDEX(n)              (0x200 + (8 * n))     /* 32 Registers */
-#define OB_OFFSET_HI(n)			(0x204 + (8 * n))     /* 32 Registers */
+#define OB_OFFSET_INDEX(n)              (0x200 + (8 * n))	/* 32 Registers */
+#define OB_OFFSET_HI(n)			(0x204 + (8 * n))	/* 32 Registers */
 #define IB_BAR0				0x300
 #define IB_START0_LO			0x304
 #define IB_START0_HI			0x308
@@ -105,7 +100,6 @@ struct gpmc_config {
 #define MSI0_IRQ_ENABLE_CLR		0x10c
 #define IRQ_ENABLE_SET			0x188
 #define IRQ_ENABLE_CLR			0x18c
-
 
 /* these register at offset 0x1000 from PCIE_BASE */
 #define VENDOR_DEVICE_ID		0x0
@@ -151,7 +145,6 @@ struct gpmc_config {
 /* Directed Speed Change */
 #define DIR_SPD				(1 << 17)
 
-
 /* bar size and mask */
 #define DISABLE		0x0
 #define SIZE_4KB	0x00000FFF
@@ -178,7 +171,6 @@ struct gpmc_config {
 #define TI8148_BTW_EN			(0x00020000)
 #define BTW_EN_MSK_SHIFT		17
 
-
 /* BAR mem width related registers */
 
 #define BAR_NONPREF_32BIT	0x0
@@ -192,15 +184,14 @@ struct gpmc_config {
 #define  BAR__START_LOW_2 0x80000000
 #define  BAR__START_LOW_3 0xa0000000
 
-#define  BAR__OFFSET_0 0x40300000  // OCMC RAM Base
-#define  BAR__OFFSET_1 0x50000000  // GPMC Base
-#define  BAR__OFFSET_2 0x80000000  // DDR 0 Base
-#define  BAR__OFFSET_3 0xC0000000  // DDR 1 Base
+#define  BAR__OFFSET_0 0x40300000	/* OCMC RAM Base */
+#define  BAR__OFFSET_1 0x50000000	/* GPMC Base */
+#define  BAR__OFFSET_2 0x80000000	/* DDR 0 Base */
+#define  BAR__OFFSET_3 0xC0000000	/* DDR 1 Base */
 
 #define CFG_REG__CMD_STATUS__MEM_SPACE__POS   1
 #define CFG_REG__CMD_STATUS__MEM_SPACE        \
         (1 << CFG_REG__CMD_STATUS__MEM_SPACE__POS)
 #define CFG_REG__CMD_STATUS__MEM_SPACE__ENB   0x1
-
 
 #endif /*_TI81XX_PCIE_H_*/
