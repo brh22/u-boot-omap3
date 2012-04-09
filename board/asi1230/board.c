@@ -645,31 +645,37 @@ void prcm_init(u32 in_ddr)
 /*
  * board specific muxing of pins
  */
-struct pad_mux {
-	u16 addr;
-	u8 val;
-};
+
+void set_muxconf(u32 * reg_addr, u8 conf_val)
+{
+	u32 reg_val = __raw_readl(*reg_addr);
+	/* bits 6:4 of val goes to bits [18:16] of register
+	 * bit 19 of register is unchanged
+	 */
+	reg_val &= ~0x0003000F;	/* keep bit 19, clear 17-16, 7-0 */
+	reg_val |= 0x00040000;	/* set bit 18 */
+	reg_val |= (conf_val << 12) & 0x00030000;
+
+	/* low nibble of val encodes pin mode selection */
+	conf_val &= 0x0F;
+	reg_val |= conf_val ? (1 << (conf_val - 1)) : 0;
+
+	__raw_writel(reg_val, *reg_addr);
+	*reg_addr += 4;
+}
 
 void set_muxconf_regs(void)
 {
-	u32 i = 0, add, reg_val;
-	u8 tmp_val;
-	struct pad_mux pad_conf[] = {
-#   include "mux.h"
-		{0}		/* End Of List marker */
-	};
+	u32 pin_ctrl_addr = PIN_CTRL_BASE;
 
-	while ((add = pad_conf[i].addr) != 0x0) {
-		reg_val = __raw_readl(CTRL_BASE + add);
-		tmp_val = pad_conf[i].val;
-		/* high nibble of val goes to bits [19:16] of register */
-		reg_val |= (tmp_val & 0xF0) << 12;
-		/* low nibble of val encodes pin mode selection */
-		tmp_val &= 0x0F;
-		reg_val |= tmp_val ? (1 << (tmp_val - 1)) : 0;
-		__raw_writel(reg_val, CTRL_BASE + add);
-		i++;
-	}
+	/* Generate the pinmux setup as code with macro expansion instead of storing an array because 
+	 * set_muxconf_regs() is executed before relocation and the compiler can generate references
+	 * to data sections when initializing local variables on the stack.
+	 */
+#define MUX_VAL(offset, value) set_muxconf(&pin_ctrl_addr, value);
+#define MUX_NOP(pin) pin_ctrl_addr += 4;	/* Skip reserved pin */
+#include "mux.h"
+
 	/* MMC/SD pull-down enable */
 	__raw_writel(0x000C0040, 0x48140928);
 }

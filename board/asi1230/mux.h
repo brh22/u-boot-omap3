@@ -322,10 +322,7 @@
 #define PINCNTL264                                0x0C1C
 #define PINCNTL270                                0x0C34
 
-#define MUX_VAL(OFFSET,VALUE)\
-    {(OFFSET), (VALUE)},
-
-MUX_VAL(PINCNTL1, (IEN | IPU | FCN1))	/* SD1_CLK */
+    MUX_VAL(PINCNTL1, (IEN | IPU | FCN1))	/* SD1_CLK */
     MUX_VAL(PINCNTL2, (IEN | IPU | FCN1))	/* SD1_CMD_MUX0 */
     MUX_VAL(PINCNTL3, (IEN | IPU | FCN1))	/* SD1_DAT[0] */
     MUX_VAL(PINCNTL4, (IEN | IPU | FCN1))	/* SD1_DAT[1]_SDIRQ */
@@ -390,6 +387,8 @@ MUX_VAL(PINCNTL1, (IEN | IPU | FCN1))	/* SD1_CLK */
     MUX_VAL(PINCNTL63, (IEN | IPU | DISABLED))	/* safe_mode */
     MUX_VAL(PINCNTL64, (IEN | IPD | DISABLED))	/* safe_mode */
     MUX_VAL(PINCNTL65, (IEN | IPU | DISABLED))	/* safe_mode */
+    MUX_NOP(66)
+    MUX_NOP(67)
     MUX_VAL(PINCNTL68, (IEN | IPU | FCN8))	/* GP1[0] */
     MUX_VAL(PINCNTL69, (IEN | IPU | FCN8))	/* GP1[1] */
     MUX_VAL(PINCNTL70, (IEN | IPU | FCN1))	/* UART0_RXD */
@@ -587,6 +586,10 @@ MUX_VAL(PINCNTL1, (IEN | IPU | FCN1))	/* SD1_CLK */
     MUX_VAL(PINCNTL262, (IEN | DIS | DISABLED))	/* safe_mode */
     MUX_VAL(PINCNTL263, (IEN | IPU | FCN1))	/* I2C[0]_SCL */
     MUX_VAL(PINCNTL264, (IEN | IPU | FCN1))	/* I2C[0]_SDA */
-    MUX_VAL(PINCNTL270, (IEN | IPD | DISABLED))
-    /* safe_mode */
+    MUX_NOP(265)
+    MUX_NOP(266)
+    MUX_NOP(267)
+    MUX_NOP(268)
+    MUX_NOP(269)
+    MUX_VAL(PINCNTL270, (IEN | IPD | DISABLED)) /* safe_mode */
 #endif
