@@ -21,7 +21,10 @@
 #include <asm/arch/sys_proto.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/mem.h>
-#include <asm/arch/mmc.h>
+/* It would be better to #include <asm/arch/mmc.h> rather than <asm/arch/mmc_host_def.h>,
+ * but right now the latter causes a macro redefinition warning.
+ */
+#include <asm/arch/mmc_host_def.h>
 #include <status_led.h>
 #include <ns16550.h>
 
@@ -147,6 +150,7 @@ static void pll_config(u32, u32, u32, u32, u32);
 static void pcie_pll_config(void);
 #endif
 static void audio_pll_config(void);
+static void video0_pll_config(void);
 static void sata_pll_config(void);
 static void modena_pll_config(void);
 static void l3_pll_config(void);
