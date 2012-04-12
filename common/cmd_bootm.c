@@ -334,7 +334,10 @@ static int bootm_load_os(image_info_t os, ulong *load_end, int boot_progress)
 	ulong blob_end = os.end;
 	ulong image_start = os.image_start;
 	ulong image_len = os.image_len;
+#if defined(CONFIG_GZIP) || defined(CONFIG_BZIP2) || \
+    defined(CONFIG_LZMA) || defined(CONFIG_LZO)
 	uint unc_len = CONFIG_SYS_BOOTM_LEN;
+#endif
 
 	const char *type_name = genimg_get_type_name (os.type);
 
