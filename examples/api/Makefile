@@ -62,7 +62,7 @@ OBJS	+= $(addprefix $(obj),$(COBJ_FILES-y))
 OBJS	+= $(addprefix $(obj),$(notdir $(EXT_COBJ_FILES-y)))
 OBJS	+= $(addprefix $(obj),$(notdir $(EXT_SOBJ_FILES-y)))
 
-gcclibdir := $(shell dirname `$(CC) -print-libgcc-file-name`)
+gcclibdir := $(shell dirname `$(CC_1) -print-libgcc-file-name`)
 
 CPPFLAGS += -I..
 
