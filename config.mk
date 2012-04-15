@@ -95,7 +95,7 @@ HOSTCFLAGS	+= -pedantic
 # Option checker (courtesy linux kernel) to ensure
 # only supported compiler options are used
 #
-cc-option = $(shell if $(CC) $(CFLAGS) $(1) -S -o /dev/null -xc /dev/null \
+cc-option = $(shell if $(CC_1) $(CFLAGS) $(1) -S -o /dev/null -xc /dev/null \
 		> /dev/null 2>&1; then echo "$(1)"; else echo "$(2)"; fi ;)
 
 #
@@ -162,7 +162,7 @@ endif
 endif
 OBJCFLAGS += --gap-fill=0xff
 
-gccincdir := $(shell $(CC) -print-file-name=include)
+gccincdir := $(shell $(CC_1) -print-file-name=include)
 
 CPPFLAGS := $(DBGFLAGS) $(OPTFLAGS) $(RELFLAGS)		\
 	-D__KERNEL__
@@ -197,7 +197,7 @@ AFLAGS_DEBUG :=
 
 # turn jbsr into jsr for m68k
 ifeq ($(ARCH),m68k)
-ifeq ($(findstring 3.4,$(shell $(CC) --version)),3.4)
+ifeq ($(findstring 3.4,$(shell $(CC_1) --version)),3.4)
 AFLAGS_DEBUG := -Wa,-gstabs,-S
 endif
 endif

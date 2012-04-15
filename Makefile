@@ -268,7 +268,7 @@ export PLATFORM_LIBS
 # on the fly.
 LDPPFLAGS += \
 	-include $(TOPDIR)/include/u-boot/u-boot.lds.h \
-	$(shell $(LD) --version | \
+	$(shell $(LD_1) --version | \
 	  sed -ne 's/GNU ld version \([0-9][0-9]*\)\.\([0-9][0-9]*\).*/-DLD_MAJOR=\1 -DLD_MINOR=\2/p')
 
 ifeq ($(CONFIG_NAND_U_BOOT),y)
@@ -337,20 +337,21 @@ $(obj)u-boot.sha1:	$(obj)u-boot.bin
 $(obj)u-boot.dis:	$(obj)u-boot
 		$(OBJDUMP) -d $< > $@
 
-GEN_UBOOT = \
-		UNDEF_SYM=`$(OBJDUMP) -x $(LIBBOARD) $(LIBS) | \
-		sed  -n -e 's/.*\($(SYM_PREFIX)__u_boot_cmd_.*\)/-u\1/p'|sort|uniq`;\
-		cd $(LNDIR) && $(LD) $(LDFLAGS) $$UNDEF_SYM $(__OBJS) \
+$(obj)u-boot:	depend $(SUBDIRS) $(OBJS) $(LIBBOARD) $(LIBS) $(LDSCRIPT) $(obj)u-boot.lds
+		$(eval UNDEF_SYM := $(shell $(OBJDUMP) -x $(LIBBOARD) $(LIBS) | \
+				sed  -n -e 's/.*\($(SYM_PREFIX)__u_boot_cmd_.*\)/-u\1/p'|sort|uniq))
+		@cd $(LNDIR)
+		$(LD) $(LDFLAGS) $(UNDEF_SYM) $(__OBJS) \
 			--start-group $(__LIBS) --end-group $(PLATFORM_LIBS) \
 			-Map u-boot.map -o u-boot
-$(obj)u-boot:	depend $(SUBDIRS) $(OBJS) $(LIBBOARD) $(LIBS) $(LDSCRIPT) $(obj)u-boot.lds
-		$(GEN_UBOOT)
 ifeq ($(CONFIG_KALLSYMS),y)
-		smap=`$(call SYSTEM_MAP,u-boot) | \
-			awk '$$2 ~ /[tTwW]/ {printf $$1 $$3 "\\\\000"}'` ; \
-		$(CC) $(CFLAGS) -DSYSTEM_MAP="\"$${smap}\"" \
+		$(eval smap := $(shell $(call SYSTEM_MAP,u-boot) | \
+			awk '$$2 ~ /[tTwW]/ {printf $$1 $$3 "\\\\000"}'))
+		$(CC) $(CFLAGS) -DSYSTEM_MAP="\"$(smap)\"" \
 			-c common/system_map.c -o $(obj)common/system_map.o
-		$(GEN_UBOOT) $(obj)common/system_map.o
+		$(LD) $(LDFLAGS) $(UNDEF_SYM) $(__OBJS) \
+			--start-group $(__LIBS) --end-group $(PLATFORM_LIBS) \
+			-Map u-boot.map -o u-boot $(obj)common/system_map.o
 endif
 
 $(OBJS):	depend
@@ -405,7 +406,7 @@ env:
 # parallel sub-makes creating .depend files simultaneously.
 depend dep:	$(TIMESTAMP_FILE) $(VERSION_FILE) $(obj)include/autoconf.mk
 		for dir in $(SUBDIRS) $(CPUDIR) $(dir $(LDSCRIPT)) ; do \
-			$(MAKE) -C $$dir _depend ; done
+			$(MAKE_1) -s -C $$dir _depend ; done
 
 TAG_SUBDIRS = $(SUBDIRS)
 TAG_SUBDIRS += $(dir $(__LIBS))
@@ -439,14 +440,14 @@ $(obj)include/autoconf.mk.dep: $(obj)include/config.h include/common.h
 	@$(XECHO) Generating $@ ; \
 	set -e ; \
 	: Generate the dependancies ; \
-	$(CC) -x c -DDO_DEPS_ONLY -M $(HOSTCFLAGS) $(CPPFLAGS) \
+	$(CC_1) -x c -DDO_DEPS_ONLY -M $(HOSTCFLAGS) $(CPPFLAGS) \
 		-MQ $(obj)include/autoconf.mk include/common.h > $@
 
 $(obj)include/autoconf.mk: $(obj)include/config.h
 	@$(XECHO) Generating $@ ; \
 	set -e ; \
 	: Extract the config macros ; \
-	$(CPP) $(CFLAGS) -DDO_DEPS_ONLY -dM include/common.h | \
+	$(CPP_1) $(CFLAGS) -DDO_DEPS_ONLY -dM include/common.h | \
 		sed -n -f tools/scripts/define2mk.sed > $@.tmp && \
 	mv $@.tmp $@
 
