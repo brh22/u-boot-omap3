@@ -3209,7 +3209,7 @@ asi1230_config: unconfig
 	@echo "#define CONFIG_TI814X"	>>$(obj)include/config.h
 	@echo "TEXT_BASE = 0x80700000" >> $(obj)board/asi1230/config.tmp
 #	@echo "#define CONFIG_NO_ETH"    >>$(obj)include/config.h
-	@echo "Setting up TI8148 minimal build for 1st stage..."
+	@echo "Setting up TI8148 build for 2nd stage..."
 	@echo "#define CONFIG_SD_BOOT"    >>$(obj)include/config.h
 	@echo "#define CONFIG_SYS_NO_FLASH"    >>$(obj)include/config.h
 	@echo "#define CONFIG_SPI_ENV"    >>$(obj)include/config.h
@@ -3271,7 +3271,7 @@ asi1230_uart_min_config: unconfig
 	@echo "TEXT_BASE = 0x80700000" >> $(obj)board/asi1230/config.tmp
 	@echo "#define CONFIG_TI814X_MIN_CONFIG"    >>$(obj)include/config.h
 	@echo "#define CONFIG_NO_ETH"    >>$(obj)include/config.h
-	@echo "Setting up TI8148 minimal build for 1st stage..."
+	@echo "Setting up TI8148 minimal build for UART 1st stage..."
 	@echo "#define CONFIG_TI81XX_PERIPHERAL_BOOT"    >>$(obj)include/config.h
 	@echo "#define CONFIG_UART_BOOT"    >>$(obj)include/config.h
 	@echo "#define CONFIG_SYS_NO_FLASH"    >>$(obj)include/config.h
@@ -3288,7 +3288,7 @@ asi1230_spi_min_config: unconfig
 	@echo "TEXT_BASE = 0x80700000" >> $(obj)board/asi1230/config.tmp
 	@echo "#define CONFIG_TI814X_MIN_CONFIG"    >>$(obj)include/config.h
 	@echo "#define CONFIG_NO_ETH"    >>$(obj)include/config.h
-	@echo "Setting up TI8148 minimal build for 1st stage..."
+	@echo "Setting up TI8148 minimal build for SPI 1st stage..."
 	@echo "#define CONFIG_SPI_BOOT" >>$(obj)include/config.h;
 	@echo "#define CONFIG_SYS_NO_FLASH"    >>$(obj)include/config.h
 	@echo "#define CONFIG_TI81XX_SPI_BOOT"	>>$(obj)include/config.h
