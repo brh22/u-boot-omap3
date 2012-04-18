@@ -95,7 +95,7 @@ HOSTCFLAGS	+= -pedantic
 # Option checker (courtesy linux kernel) to ensure
 # only supported compiler options are used
 #
-cc-option = $(shell if $(CC_1) $(CFLAGS) $(1) -S -o /dev/null -xc /dev/null \
+cc-option = $(shell if $(CROSS_COMPILE)gcc $(CFLAGS) $(1) -S -o /dev/null -xc /dev/null \
 		> /dev/null 2>&1; then echo "$(1)"; else echo "$(2)"; fi ;)
 
 #
