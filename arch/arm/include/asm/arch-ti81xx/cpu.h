@@ -59,7 +59,7 @@
 /* cpu-id for TI81XX family */
 #define TI8168				0xb81e
 #define TI8148				0xb8f2
-#define DM385				0xb96b
+#define TI813X				0xb96b
 #define TI811X				0xb968
 
 #define DEVICE_ID			(CTRL_BASE + 0x0600)
@@ -150,6 +150,15 @@
 #define SATA_RXSTATUS			(CTRL_BASE + 0x738)
 #define SATA_TXSTATUS			(CTRL_BASE + 0x73C)
 
+#define SATA1_PLLCFG0			(CTRL_BASE + 0x74C)
+#define SATA1_PLLCFG1			(CTRL_BASE + 0x750)
+#define SATA1_PLLCFG2			(CTRL_BASE + 0x754)
+#define SATA1_PLLCFG3			(CTRL_BASE + 0x758)
+#define SATA1_PLLCFG4			(CTRL_BASE + 0x75C)
+#define SATA1_PLLSTATUS			(CTRL_BASE + 0x760)
+#define SATA1_RXSTATUS			(CTRL_BASE + 0x764)
+#define SATA1_TXSTATUS			(CTRL_BASE + 0x768)
+
 #define SMA1				(CTRL_BASE + 0x131c)
 
 /* pin muxing registers */
@@ -185,7 +194,7 @@
 #define DDR0_DATA2_CTRL			(CTRL_BASE + 0x1428)
 #define DDR0_DATA3_CTRL			(CTRL_BASE + 0x142C)
 
-#if !(defined(CONFIG_DM385) || defined(CONFIG_TI811X))
+#if !(defined(CONFIG_TI813X) || defined(CONFIG_TI811X))
 #define DDR1_CMD_CTRL			(CTRL_BASE + 0x1500)
 #define DDR1_DATA0_CS0_CTRL0		(CTRL_BASE + 0x1540)
 #define DDR1_DATA0_CS0_CTRL1		(CTRL_BASE + 0x1544)
@@ -232,7 +241,7 @@
 
 #define MODENA_PLL_BASE			(PLL_SUBSYS_BASE + 0x048)
 
-#ifndef CONFIG_DM385
+#ifndef CONFIG_TI813X
 #define DSP_PLL_BASE			(PLL_SUBSYS_BASE + 0x080)
 #define SGX_PLL_BASE			(PLL_SUBSYS_BASE + 0x0B0)
 #endif
@@ -275,7 +284,6 @@
 /* PRCM */
 #define CM_CLKOUT_CTL			(PRCM_BASE + 0x0100)
 #define CM_DPLL_OFFSET			(PRCM_BASE + 0x0300)
-#define CM_SYSCLK10_CLKSEL		(CM_DPLL_OFFSET + 0x24)
 
 #ifdef CONFIG_TI816X
 #define CM_TIMER1_CLKSEL		(CM_DPLL_OFFSET + 0x90)
@@ -381,7 +389,7 @@
 #define EMIF4_0_DDR_PHY_CTRL_1_SHADOW	(EMIF4_0_CFG_BASE + 0xE8)
 #define EMIF4_0_IODFT_TLGC		(EMIF4_0_CFG_BASE + 0x60)
 
-#if !(defined(CONFIG_DM385) || defined(CONFIG_TI811X))
+#if !(defined(CONFIG_TI813X) || defined(CONFIG_TI811X))
 #define EMIF4_1_SDRAM_ZQCR		(EMIF4_1_CFG_BASE + 0xC8)
 #define EMIF4_1_SDRAM_CONFIG		(EMIF4_1_CFG_BASE + 0x08)
 #define EMIF4_1_SDRAM_CONFIG2		(EMIF4_1_CFG_BASE + 0x0C)
@@ -444,7 +452,7 @@
 #endif
 
 #ifdef CONFIG_TI814X
-#if defined(CONFIG_DM385) || defined(CONFIG_TI811X)
+#if defined(CONFIG_TI813X) || defined(CONFIG_TI811X)
 #define SRAM0_SIZE			(0x40000)
 #else
 #define SRAM0_SIZE			(0x1B800)

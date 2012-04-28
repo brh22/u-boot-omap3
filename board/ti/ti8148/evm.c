@@ -760,9 +760,6 @@ void prcm_init(u32 in_ddr)
 
 	usb_pll_config();
 
-	/*reset the  sysclk10 div to 1 for 96 MHz*/
-	__raw_writel(0x1, CM_SYSCLK10_CLKSEL);
-
 	/*  With clk freqs setup to desired values,
 	 *  enable the required peripherals
 	 */
@@ -1084,9 +1081,12 @@ void set_muxconf_regs(void)
 	for (i = 0; i<N_PINS; i++)
 	{
 		add = PIN_CTRL_BASE + (i*4);
-		val = __raw_readl(add);
-		val |= pad_conf[i];
-		__raw_writel(val, add);
+		/* 0 skips reserved regs */
+		if (pad_conf[i] != 0) {
+			val = __raw_readl(add);
+			val |= pad_conf[i];
+			__raw_writel(val, add);
+		}
 	}
 	/* MMC/SD pull-down enable */
 	__raw_writel(0x000C0040, 0x48140928);

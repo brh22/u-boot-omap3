@@ -564,7 +564,11 @@ static void cpsw_slave_update_link(struct cpsw_slave *slave,
 
 		*link = 1;
 		mac_control = priv->data.mac_control;
-		if (speed == 1000)
+		if (speed == 10)
+			mac_control |= BIT(18);	/* In-Band Mode */
+		else if (speed == 100)
+			mac_control |= BIT(15);	/* RMII/RGMII Gasket Control */
+		else if (speed == 1000)
 			mac_control |= BIT(7);	/* GIGABITEN	*/
 		if (duplex == FULL)
 			mac_control |= BIT(0);	/* FULLDUPLEXEN	*/
@@ -703,8 +707,14 @@ static int cpdma_process(struct cpsw_priv *priv, struct cpdma_chan *chan,
 	if (buffer)
 		*buffer = desc_read_ptr(desc, sw_buffer);
 
-	if (status & CPDMA_DESC_OWNER)
+	if (status & CPDMA_DESC_OWNER) {
+		if (chan_read(chan, hdp) == NULL) {
+			if (desc_read(desc, hw_mode) & CPDMA_DESC_OWNER)
+				chan_write(chan, hdp, desc);
+		}
+
 		return -EBUSY;
+	}
 
 	chan->head = desc_read_ptr(desc, hw_next);
 	chan_write(chan, cp, desc);

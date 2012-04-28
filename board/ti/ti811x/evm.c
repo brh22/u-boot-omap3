@@ -130,7 +130,7 @@ int board_init(void)
 	nor_pad_config_mux();
 
 	/* setup RMII_REFCLK to be sourced from audio_pll */
-	__raw_writel(0x4, RMII_REFCLK_SRC);
+	__raw_writel(0x30004, RMII_REFCLK_SRC);
 
 	/*program GMII_SEL register for RGMII mode */
 	__raw_writel(0x30a, GMII_SEL);
@@ -638,9 +638,6 @@ void prcm_init(u32 in_ddr)
 	iss_pll_config();
 
 	usb_pll_config();
-
-	/*reset the  sysclk10 div to 1 for 96 MHz*/
-	__raw_writel(0x1, CM_SYSCLK10_CLKSEL);
 
 	/*  With clk freqs setup to desired values,
 	 *  enable the required peripherals

@@ -60,6 +60,17 @@
 	"verify=yes\0" \
 	"bootcmd=source 0x80400000\0" \
 	""
+/* user can override default size configuration here.
+ * it will only come in effect if TI81xx_NO_PIN_GPMC
+ * is defined in include/asm/arch/pcie.h
+ */
+#define CONFIG_BAR1_32  (0x1000000ULL)
+#define CONFIG_BAR2_32  (0x800000ULL)
+#define CONFIG_BAR3_32  (0xfffULL)
+#define CONFIG_BAR4_32  (0x1001ULL)
+#define CONFIG_REG2_64  (0x1000000ULL)
+#define CONFIG_REG4_64  (0x2000000ULL)
+
 
 # else
 # define CONFIG_EXTRA_ENV_SETTINGS \
@@ -195,7 +206,7 @@
 #define CONFIG_SYS_NS16550
 #define CONFIG_SYS_NS16550_SERIAL
 #define CONFIG_SYS_NS16550_REG_SIZE	(-4)
-#define CONFIG_SYS_NS16550_CLK		(96000000)
+#define CONFIG_SYS_NS16550_CLK		(48000000)
 #define CONFIG_SYS_NS16550_COM1		0x48020000	/* Base EVM has UART0 */
 
 #define CONFIG_BAUDRATE		115200

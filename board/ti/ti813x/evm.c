@@ -32,7 +32,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#ifdef CONFIG_DM385_CONFIG_DDR
+#ifdef CONFIG_TI813X_CONFIG_DDR
 static void cmd_macro_config(u32 ddr_phy, u32 inv_clk_out,
 			 u32 ctrl_slave_ratio_cs0, u32 cmd_dll_lock_diff)
 {
@@ -146,7 +146,7 @@ int board_init(void)
 	__raw_writel(regVal, UART_SYSCFG);
 
 	/* mach type passed to kernel */
-	gd->bd->bi_arch_number = MACH_TYPE_DM385EVM;
+	gd->bd->bi_arch_number = MACH_TYPE_TI813XEVM;
 
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_DRAM_1 + 0x100;
@@ -183,32 +183,32 @@ int dram_init(void)
 
 int misc_init_r(void)
 {
-	#ifdef CONFIG_DM385_MIN_CONFIG
+	#ifdef CONFIG_TI813X_MIN_CONFIG
 	printf("The 2nd stage U-Boot will now be auto-loaded\n");
 	printf("Please do not interrupt the countdown till "
-		"DM385_EVM prompt if 2nd stage is already flashed\n");
+		"TI813X_EVM prompt if 2nd stage is already flashed\n");
 	#endif
 
-#ifdef CONFIG_DM385_ASCIIART
+#ifdef CONFIG_TI813X_ASCIIART
 	int i = 0, j = 0;
 
-	char dm385[22][67] = {
+	char ti813x[22][67] = {
 "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",
 "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",
 "@@                                                               @@",
 "@@                                                               @@",
 "@@                                                               @@",
 "@@                                                               @@",
-"@@      @@@        @.   @.         @@@@    @@@@  G@@@@@@         @@",
-"@@      @@@@@     L@@  @@@        @@@@@@  @@@@@i @@@@@@          @@",
-"@@      @@ @@@.   @@@  @@@            @@  @,  @@ :@@             @@",
-"@@      @@   @@   @@@  @@@          @@@@  @@;@@: C@@@@@.         @@",
-"@@      @@    @@  @@@.l@L@         G@@@   ,@@@@  @@@  @@         @@",
-"@@      @@    @@ l@ @@@@ @.          l@@  @@ L@@  @   G@         @@",
-"@@      @@    @@ @@ @@@@ @@           @@ C@   @@      @@         @@",
-"@@      @@   ,@C @@ @@@  @@       @i  @@ C@   @@ @@   @@         @@",
-"@@      @@@@@@@  @@  @@  @@       @@@@@l  @@@@@@ L@@@@@          @@",
-"@@       @@@@@   @   @    @        L@@     @@@,   ,@@G           @@",
+"@@                                                               @@",
+"@@     88888888888 8888888 .d8888b.   d888   .d8888b.            @@",
+"@@         888       888  d88P  Y88b d8888  d88P  Y88b           @@",
+"@@         888       888  Y88b. d88P   888       .d88P           @@",
+"@@         888       888    Y88888    888      8888   888  888   @@",
+"@@         888       888  .d8P88Y8b.   888        Y8b.  Y8 8P    @@",
+"@@         888       888  888    888   888  888    888   88      @@",
+"@@         888       888  Y88b  d88P   888  Y88b  d88P .d8 8b.   @@",
+"@@         888     8888888  Y8888P  8888888   Y8888P   888 888   @@",
+"@@                                                               @@",
 "@@                                                               @@",
 "@@                                                               @@",
 "@@                                                               @@",
@@ -218,15 +218,15 @@ int misc_init_r(void)
 
 	for (i = 0; i < 22; i++) {
 		for (j = 0; j < 67; j++)
-			printf("%c", dm385[i][j]);
+			printf("%c", ti813x[i][j]);
 			printf("\n");
 	}
 	printf("\n");
 #endif
 	return 0;
 }
-#ifdef CONFIG_DM385_CONFIG_DDR
-static void config_dm385_ddr(void)
+#ifdef CONFIG_TI813X_CONFIG_DDR
+static void config_ti813x_ddr(void)
 {
 	int macro, emif = 0;
 
@@ -380,6 +380,7 @@ static void pcie_pll_config()
 
 static void sata_pll_config()
 {
+	/* setup sata0 pll*/
 	__raw_writel(0xC12C003C, SATA_PLLCFG1);
 	__raw_writel(0x004008E0, SATA_PLLCFG3);
 	delay(0xFFFF);
@@ -402,6 +403,28 @@ static void sata_pll_config()
 	while (((__raw_readl(SATA_PLLSTATUS) & 0x01) == 0x0))
 		;
 
+	/* setup sata1 pll*/
+	__raw_writel(0xC12C003C, SATA1_PLLCFG1);
+	__raw_writel(0x004008E0, SATA1_PLLCFG3);
+	delay(0xFFFF);
+
+	__raw_writel(0x80000004, SATA1_PLLCFG0);
+	delay(0xFFFF);
+
+	/* Enable PLL LDO */
+	__raw_writel(0x80000014, SATA1_PLLCFG0);
+	delay(0xFFFF);
+
+	/* Enable DIG LDO, ENBGSC_REF, PLL LDO */
+	__raw_writel(0x80000016, SATA1_PLLCFG0);
+	delay(0xFFFF);
+
+	__raw_writel(0xC0000017, SATA1_PLLCFG0);
+	delay(0xFFFF);
+
+	/* wait for ADPLL lock */
+	while (((__raw_readl(SATA1_PLLSTATUS) & 0x01) == 0x0))
+		;
 }
 
 static void usb_pll_config()
@@ -614,9 +637,6 @@ void prcm_init(u32 in_ddr)
 	iss_pll_config();
 
 	usb_pll_config();
-
-	/*reset the  sysclk10 div to 1 for 96 MHz*/
-	__raw_writel(0x1, CM_SYSCLK10_CLKSEL);
 
 	/*  With clk freqs setup to desired values,
 	 *  enable the required peripherals
@@ -865,7 +885,7 @@ void s_init(u32 in_ddr)
 	 * Disable Write Allocate on miss to avoid starvation of other masters
 	 * (than A8).
 	 *
-	 * Ref DM385 Erratum: TODO
+	 * Ref TI813X Erratum: TODO
 	 */
 	l2_disable_wa();
 
@@ -874,9 +894,9 @@ void s_init(u32 in_ddr)
 	unlock_pll_control_mmr();
 	/* Setup the PLLs and the clocks for the peripherals */
 	prcm_init(in_ddr);
-#ifdef CONFIG_DM385_CONFIG_DDR
+#ifdef CONFIG_TI813X_CONFIG_DDR
 	if (!in_ddr)
-		config_dm385_ddr();	/* Do DDR settings */
+		config_ti813x_ddr();	/* Do DDR settings */
 #endif
 }
 
@@ -1024,8 +1044,6 @@ int board_eth_init(bd_t *bis)
 #endif
 
 	if (!eth_getenv_enetaddr("ethaddr", mac_addr)) {
-		char mac_addr_env[20];
-
 		printf("<ethaddr> not set. Reading from E-fuse\n");
 		/* try reading mac address from efuse */
 		mac_lo = __raw_readl(MAC_ID0_LO);
@@ -1036,11 +1054,7 @@ int board_eth_init(bd_t *bis)
 		mac_addr[3] = (mac_hi & 0xFF000000) >> 24;
 		mac_addr[4] = mac_lo & 0xFF;
 		mac_addr[5] = (mac_lo & 0xFF00) >> 8;
-		/* set the ethaddr variable with MACID detected */
-		sprintf(mac_addr_env, "%02x:%02x:%02x:%02x:%02x:%02x",
-			mac_addr[0], mac_addr[1], mac_addr[2],
-			mac_addr[3], mac_addr[4], mac_addr[5]);
-		eth_setenv_enetaddr("ethaddr", mac_addr_env);
+		eth_setenv_enetaddr("ethaddr", mac_addr);
 	}
 
 	if(is_valid_ether_addr(mac_addr)) {
