@@ -23,6 +23,9 @@ TI_LOAD_ADDR = 0x40300000
 CROSS_COMPILE:= arm-none-linux-gnueabi-
 LDSCRIPT:=board/asi1230/u-boot.lds
 
+# Reduce size by cleaning up ELF sections (it does not seem to do much)
+PLATFORM_LDFLAGS   += --gc-sections
+
 # Attempt at making build process less verbose
 
 V = 0
