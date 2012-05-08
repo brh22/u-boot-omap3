@@ -351,7 +351,7 @@
     MUX_VAL(PINCNTL27, (IEN | IPD | FCN1))	/* MCA[0]_AXR[6] */
     MUX_VAL(PINCNTL28, (IEN | IPD | FCN1))	/* MCA[0]_AXR[7]_MUX0 */
     MUX_VAL(PINCNTL29, (IEN | IPD | FCN1))	/* MCA[0]_AXR[8]_MUX0 */
-    MUX_VAL(PINCNTL30, (IEN | IPD | DISABLED))	/* safe_mode */
+    MUX_VAL(PINCNTL30, (IEN | IPD | FCN1))	/* MCA[0]_AXR[9]_MUX0 */
     MUX_VAL(PINCNTL31, (IEN | IPD | DISABLED))	/* safe_mode */
     MUX_VAL(PINCNTL32, (IEN | IPD | DISABLED))	/* safe_mode */
     MUX_VAL(PINCNTL33, (IEN | IPD | DISABLED))	/* safe_mode */
