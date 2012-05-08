@@ -600,12 +600,14 @@ void per_clocks_enable(void)
 	while (__raw_readl(CM_ALWON_HSMMC_CLKCTRL) != 0x2) ;
 
 	/*
-	 * McASP2
+	 * McASP0 and McASP2
 	 * select mcasp2 clk from sys_clk_22 (OSC 0)
 	 * so that audio clk (sys_clk_20) can be used for RMII
 	 * ToDo :
 	 * This can be removed once kernel exports set_parent()
 	 */
+	__raw_writel(0x2, CM_AUDIOCLK_MCASP0_CLKSEL);
+	while (__raw_readl(CM_AUDIOCLK_MCASP0_CLKSEL) != 0x2) ;
 	__raw_writel(0x2, CM_AUDIOCLK_MCASP2_CLKSEL);
 	while (__raw_readl(CM_AUDIOCLK_MCASP2_CLKSEL) != 0x2) ;
 
