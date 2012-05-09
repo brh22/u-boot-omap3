@@ -304,6 +304,14 @@ int misc_init_r(void)
 	if (is_eng_mode_enabled()) {
 		setenv("preboot", "\0");
 		printf("Booting in engineering mode\n");
+		/* output mDDR settings for use in .gel script */
+		printf("mDDR_EMIF_TIM1 = 0x0%08x\n", mDDR_EMIF_TIM1); 
+		printf("mDDR_EMIF_TIM2 = 0x0%08x\n", mDDR_EMIF_TIM2); 
+		printf("mDDR_EMIF_TIM3 = 0x0%08x\n", mDDR_EMIF_TIM3); 
+		printf("mDDR_EMIF_REF_CTRL = 0x0%08x\n", mDDR_EMIF_REF_CTRL); 
+		printf("mDDR_EMIF_SDRAM_CONFIG = 0x0%08x\n", mDDR_EMIF_SDRAM_CONFIG); 
+		printf("mDDR_EMIF_SDRAM_CONFIG2 = 0x0%08x\n", mDDR_EMIF_SDRAM_CONFIG2); 
+		printf("mDDR_EMIF_SDRAM_ZQCR = 0x0%08x\n", mDDR_EMIF_SDRAM_ZQCR); 
 	}
 #ifndef DEBUG
 	else {
