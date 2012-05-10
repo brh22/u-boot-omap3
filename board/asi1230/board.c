@@ -684,7 +684,7 @@ void set_muxconf(u32 * reg_addr, u8 conf_val)
 	/* bits 6:4 of val goes to bits [18:16] of register
 	 * bit 19 of register is unchanged
 	 */
-	reg_val &= ~0x0003000F;	/* keep bit 19, clear 17-16, 7-0 */
+	reg_val &= ~0x000300FF;	/* keep bit 19, clear 17-16, 7-0 */
 	reg_val |= 0x00040000;	/* set bit 18 */
 	reg_val |= (conf_val << 12) & 0x00030000;
 
