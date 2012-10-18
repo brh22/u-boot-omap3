@@ -79,9 +79,7 @@
 # define CONFIG_SETUP_PLL
 # define CONFIG_TI814X_CONFIG_DDR
 # define CONFIG_ASI1230_CONFIG_MDDR
-/*
- * # define CONFIG_TI814X_EVM_DDR2
- */ 
+
 # define CONFIG_ENV_SIZE		0x400
 # define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (8 * 1024))
 # define CONFIG_SYS_PROMPT		"ASI1230-MIN#"
@@ -120,7 +118,7 @@
 # define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (32 * 1024))
 # define CONFIG_ENV_OVERWRITE
 # define CONFIG_SYS_LONGHELP
-# define CONFIG_SYS_PROMPT		"ASI1230#"
+# define CONFIG_SYS_PROMPT		"ASI1230-ENG#"
 # define CONFIG_SYS_HUSH_PARSER		/* Use HUSH parser to allow command parsing */
 # define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
 # define CONFIG_CMDLINE_TAG        	1	/* enable passing of ATAGs  */
@@ -131,6 +129,7 @@
 # define CONFIG_MMC			1
 # define CONFIG_SPI			1
 # define CONFIG_I2C			1
+# define CONFIG_BOOTARGS "console=ttyO0,115200n8 rootwait root=/dev/mmcblk0p2 rw mem=48M earlyprink ip=off noinitrd"
 # define CONFIG_EXTRA_ENV_SETTINGS \
 	"verify=yes\0" \
 	"bootfile=uImage\0" \
@@ -140,6 +139,7 @@
 	"loadbootscript=fatload mmc 0 ${script_addr} boot.scr\0" \
 	"bootscript= echo Running bootscript from MMC/SD to set the ENV...; " \
 		"source ${script_addr}\0" \
+	"alt_bootcmd=mmc rescan 0; fatload mmc 0 0x81000000 uImage; bootm 0x81000000\0"
 
 # define CONFIG_BOOTCOMMAND \
 	"if mmc rescan 0; then " \
@@ -148,7 +148,7 @@
 		"else " \
 			"echo In case ENV on MMC/SD is required; "\
 			"echo Please put a valid script named boot.scr on the card; " \
-			"echo Refer to the User Guide on how to generate the image; " \
+			"run alt_bootcmd; " \
 		"fi; " \
 	"else " \
 		"echo Please set bootargs and bootcmd before booting the kernel; " \
