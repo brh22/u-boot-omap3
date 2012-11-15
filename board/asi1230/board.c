@@ -191,17 +191,17 @@ int board_init(void)
 {
 	u32 regVal;
 
-	/* setup RMII_REFCLK to be sourced from audio_pll */
-	/* __raw_writel(CPTS_RFT_CLK_AUDIO_PLL_OUT, RMII_REFCLK_SRC); */
-
-	/* setup RMII_REFCLK to be sourced from video0_pll (default) */
-	__raw_writel(CPTS_RFT_CLK_VIDEO0_PLL_OUT, RMII_REFCLK_SRC);
+	/* setup RMII_REFCLK (CPTS_RFTCLK in TRM) to be sourced from
+	 * video1_pll so we can use video0 for audio clocks */
+	__raw_writel(CPTS_RFT_CLK_VIDEO1_PLL_OUT, RMII_REFCLK_SRC);
 
 	/* Note TRM (SPRUGZ8A 14 November 2011 – Revised February 2012)
 	 * description of CLKOUTDIV field (2.9.3.1 CM_CLKOUT_CTRL, page 535)
-	 * is incorrect - ratio is (CLKOUTDIV+1)
+	 * is incorrect - ratio is (CLKOUTDIV+1). Ranges between 1..8
+	 *
+	 * Set to divide by 1
 	 */
-	__raw_writel(CM_CLKOUT_CTL_ENABLE + CM_CLKOUT_CTL_DIV(7) +
+	__raw_writel(CM_CLKOUT_CTL_ENABLE + CM_CLKOUT_CTL_DIV(0) +
 		     CM_CLKOUT_CTL_SOURCE_VIDEO0_PLL, CM_CLKOUT_CTL);
 
 	/* program GMII_SEL register for RGMII mode and
@@ -428,7 +428,12 @@ static void audio_pll_config()
 
 static void video0_pll_config()
 {
-	pll_config(VIDEO0_PLL_BASE, AUDIO_N, AUDIO_M, AUDIO_M2, AUDIO_CLKCTRL);
+	pll_config(VIDEO0_PLL_BASE, VIDEO0_N, VIDEO0_M, VIDEO0_M2, VIDEO0_CLKCTRL);
+}
+
+static void video1_pll_config()
+{
+	pll_config(VIDEO1_PLL_BASE, VIDEO1_N, VIDEO1_M, VIDEO1_M2, VIDEO1_CLKCTRL);
 }
 
 static void sata_pll_config()
@@ -622,11 +627,13 @@ void per_clocks_enable(void)
 
 	/* CLKOUT 1,0 MUX setup (TRMp522 */
 #define CLKOUT_MUX_SOURCE_PRCM_SYSCLK_OUT 0
+#define CLKOUT_MUX_SOURCE_ISS_DPLL 4
 #define CLKOUT_MUX_SOURCE_L3_DPLL 5
 #define CLKOUT_MUX_SOURCE_OSC0 6
 #define CLKOUT_MUX_INIT ((CLKOUT_MUX_SOURCE_OSC0 << 16) +\
 			(CLKOUT_MUX_SOURCE_PRCM_SYSCLK_OUT << 0))
 
+	/* is this code even executed ????? - SGT does not think so */
 	__raw_writel(CLKOUT_MUX_INIT, CLKOUT_MUX);
 	while (__raw_readl(CLKOUT_MUX) != CLKOUT_MUX_INIT) ;
 
@@ -658,6 +665,7 @@ void prcm_init(u32 in_ddr)
 	/* Setup the various plls */
 	audio_pll_config();
 	video0_pll_config();
+	video1_pll_config();
 	sata_pll_config();
 	modena_pll_config();
 	l3_pll_config();
