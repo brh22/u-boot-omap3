@@ -23,6 +23,15 @@
 
 #define OSC_0_FREQ	20
 
+#define DCO_HS2_MIN	500
+#define DCO_HS2_MAX	1000
+#define DCO_HS1_MIN	1000
+#define DCO_HS1_MAX	2000
+
+#define SELFREQDCO_HS2	0x00000801
+#define SELFREQDCO_HS1	0x00001001
+#define ADPLLJ_CLKCRTL_CLKDCO    0x201a0000
+
 /* Put the pll config values over here */
 /* Audio clock is 250MHz - not currently used */
 #define AUDIO_N		19
