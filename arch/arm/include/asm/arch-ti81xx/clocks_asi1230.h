@@ -24,10 +24,23 @@
 #define OSC_0_FREQ	20
 
 /* Put the pll config values over here */
+/* Audio clock is 250MHz - not currently used */
 #define AUDIO_N		19
 #define AUDIO_M		500
 #define AUDIO_M2	2
 #define AUDIO_CLKCTRL	0x801
+
+/* Video0 clock starts at 32*512*48kHz = ~786MHz - used to gen Audio 512Fs clock */
+#define VIDEO0_N	19
+#define VIDEO0_M	786
+#define VIDEO0_M2	64 /*256Fs clock for now until we move to revB h/w)*/
+#define VIDEO0_CLKCTRL	0x801
+
+/* Video1 clock is 250MHz - used for RGMII */
+#define VIDEO1_N	19
+#define VIDEO1_M	500
+#define VIDEO1_M2	2
+#define VIDEO1_CLKCTRL	0x801
 
 #define MODENA_N	0x1
 #define MODENA_M	0x3C
