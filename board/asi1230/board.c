@@ -546,15 +546,8 @@ static u32 pll_dco_freq_sel(u32 clkout_dco)
  */
 static u32 pll_sigma_delta_val(u32 clkout_dco)
 {
-	u32 sig_val = 0;
-	float frac_div;
-
-	frac_div = (float) clkout_dco / 250;
-	frac_div = frac_div + 0.90;
-	sig_val = (int)frac_div;
-	sig_val = sig_val << 24;
-
-	return sig_val;
+	u32 tmp = ((clkout_dco << 16) / 250) >> 16;
+	return (tmp+1) << 24;
 }
 
 /*
@@ -569,7 +562,7 @@ static void pll_config(u32 base, u32 n, u32 m, u32 m2, u32 clkctrl_val)
 	mn2val = m;
 
 	/* calculate clkout_dco */
-	clkout_dco = ((OSC_0_FREQ / (n+1)) * m);
+	clkout_dco = (((OSC_0_FREQ << 16) / (n+1)) * m) >> 16;
 
 	/* sigma delta & Hs mode selection skip for ADPLLS*/
 	if (MODENA_PLL_BASE != base) {
