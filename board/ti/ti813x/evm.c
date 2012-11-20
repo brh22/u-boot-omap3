@@ -87,10 +87,10 @@ static void data_macro_config(u32 macro_num, u32 emif, u32 rd_dqs_cs0,
 }
 #endif
 
+#ifdef CONFIG_SETUP_PLL
+static u32 pll_dco_freq_sel(u32 clkout_dco);
+static u32 pll_sigma_delta_val(u32 clkout_dco);
 static void pll_config(u32, u32, u32, u32, u32);
-#if 0
-static void pcie_pll_config(void);
-#endif
 static void audio_pll_config(void);
 static void sata_pll_config(void);
 static void modena_pll_config(void);
@@ -99,6 +99,7 @@ static void ddr_pll_config(void);
 static void iss_pll_config(void);
 static void iva_pll_config(void);
 static void usb_pll_config(void);
+#endif
 
 static void unlock_pll_control_mmr(void);
 #ifdef CONFIG_DRIVER_TI_CPSW
@@ -179,15 +180,46 @@ int dram_init(void)
 
 	return 0;
 }
+#ifdef CONFIG_SERIAL_TAG
+/* *********************************************************
+ * * get_board_serial() - setup to pass kernel board serial
+ * * returns: board serial number
+ * **********************************************************
+ */
+void get_board_serial(struct tag_serialnr *serialnr)
+{
+	/* ToDo: read eeprom and return*/
+	serialnr->high = 0x0;
+	serialnr->low = 0x0;
+}
+#endif
 
+#ifdef CONFIG_REVISION_TAG
+/**********************************************************
+ * * get_board_rev() - setup to pass kernel board revision
+ * * returns: revision
+ * ********************************************************
+*/
+u32 get_board_rev(void)
+{
+	/* ToDo: read eeprom */
+	return 0x0;
+}
+#endif
 
 int misc_init_r(void)
 {
-	#ifdef CONFIG_TI813X_MIN_CONFIG
+#ifdef CONFIG_TI813X_MIN_CONFIG
+#ifdef CONFIG_TI81XX_PCIE_BOOT
+	extern int pcie_init(void);
+	printf("\nSetting up for pcie boot...\n");
+	pcie_init();
+	return 0;
+#endif
 	printf("The 2nd stage U-Boot will now be auto-loaded\n");
 	printf("Please do not interrupt the countdown till "
 		"TI813X_EVM prompt if 2nd stage is already flashed\n");
-	#endif
+#endif
 
 #ifdef CONFIG_TI813X_ASCIIART
 	int i = 0, j = 0;
@@ -228,7 +260,6 @@ int misc_init_r(void)
 #ifdef CONFIG_TI813X_CONFIG_DDR
 static void config_ti813x_ddr(void)
 {
-	int macro, emif = 0;
 
 	/* Enable the Power Domain Transition of L3 Fast Domain Peripheral */
 	__raw_writel(0x2, CM_DEFAULT_FW_CLKCTRL);
@@ -250,13 +281,29 @@ static void config_ti813x_ddr(void)
 			DDR3_PHY_CTRL_SLAVE_RATIO_CS0_DEFINE,
 			PHY_CMD0_DLL_LOCK_DIFF_DEFINE);
 
-	for (macro = 0; macro <= DATA_MACRO_3; macro++) {
-		data_macro_config(macro, DDR_PHY0,
-			DDR3_PHY_RD_DQS_CS0_DEFINE,
-			DDR3_PHY_WR_DQS_CS0_DEFINE,
-			DDR3_PHY_RD_DQS_GATE_CS0_DEFINE,
-			DDR3_PHY_WR_DATA_CS0_DEFINE);
-	}
+	data_macro_config(DATA_MACRO_0, DDR_PHY0,
+		DDR3_PHY_RD_DQS_CS0_BYTE0,
+		DDR3_PHY_WR_DQS_CS0_BYTE0,
+		DDR3_PHY_RD_DQS_GATE_CS0_BYTE0,
+		DDR3_PHY_WR_DATA_CS0_BYTE0);
+
+	data_macro_config(DATA_MACRO_1, DDR_PHY0,
+		DDR3_PHY_RD_DQS_CS0_BYTE1,
+		DDR3_PHY_WR_DQS_CS0_BYTE1,
+		DDR3_PHY_RD_DQS_GATE_CS0_BYTE1,
+		DDR3_PHY_WR_DATA_CS0_BYTE1);
+
+	data_macro_config(DATA_MACRO_2, DDR_PHY0,
+		DDR3_PHY_RD_DQS_CS0_BYTE2,
+		DDR3_PHY_WR_DQS_CS0_BYTE2,
+		DDR3_PHY_RD_DQS_GATE_CS0_BYTE2,
+		DDR3_PHY_WR_DATA_CS0_BYTE2);
+
+	data_macro_config(DATA_MACRO_3, DDR_PHY0,
+		DDR3_PHY_RD_DQS_CS0_BYTE3,
+		DDR3_PHY_WR_DQS_CS0_BYTE3,
+		DDR3_PHY_RD_DQS_GATE_CS0_BYTE3,
+		DDR3_PHY_WR_DATA_CS0_BYTE3);
 
 	/* DDR IO CTRL config */
 	__raw_writel(DDR0_IO_CTRL_DEFINE, DDR0_IO_CTRL);
@@ -315,6 +362,8 @@ static void config_ti813x_ddr(void)
 	__raw_writel(DDR3_EMIF_REF_CTRL, EMIF4_0_SDRAM_REF_CTRL_SHADOW);
 }
 #endif
+
+#ifdef CONFIG_SETUP_PLL
 static void audio_pll_config()
 {
 	pll_config(AUDIO_PLL_BASE,
@@ -470,32 +519,82 @@ static void iva_pll_config()
 }
 
 /*
+ * select the HS1 or HS2 for DCO Freq
+ * return : CLKCTRL
+ */
+static u32 pll_dco_freq_sel(u32 clkout_dco)
+{
+
+	if (clkout_dco >= DCO_HS2_MIN && clkout_dco < DCO_HS2_MAX)
+		return SELFREQDCO_HS2;
+	else if (clkout_dco >= DCO_HS1_MIN && clkout_dco < DCO_HS1_MAX)
+		return SELFREQDCO_HS1;
+	else
+		return -1;
+
+}
+
+/*
+ * select the sigma delta config
+ * return: sigma delta val
+ */
+static u32 pll_sigma_delta_val(u32 clkout_dco)
+{
+	u32 sig_val = 0;
+	float frac_div;
+
+	frac_div = (float) clkout_dco / 250;
+	frac_div = frac_div + 0.90;
+	sig_val = (int)frac_div;
+	sig_val = sig_val << 24;
+
+	return sig_val;
+}
+
+/*
  * configure individual ADPLLJ
  */
 static void pll_config(u32 base, u32 n, u32 m, u32 m2, u32 clkctrl_val)
 {
-	u32 m2nval, mn2val, read_clkctrl = 0;
+	u32 m2nval, mn2val, read_clkctrl = 0, clkout_dco = 0;
+	u32 sig_val = 0, hs_mod = 0;
 
 	m2nval = (m2 << 16) | n;
 	mn2val = m;
 
+	/* calculate clkout_dco */
+	clkout_dco = ((OSC_0_FREQ / (n+1)) * m);
+
+	/* sigma delta & Hs mode selection skip for ADPLLS*/
+	if (MODENA_PLL_BASE != base) {
+		sig_val = pll_sigma_delta_val(clkout_dco);
+		hs_mod = pll_dco_freq_sel(clkout_dco);
+	}
+
 	/* by-pass pll */
 	read_clkctrl = __raw_readl(base + ADPLLJ_CLKCTRL);
 	__raw_writel((read_clkctrl | 0x00800000), (base + ADPLLJ_CLKCTRL));
-	while ((__raw_readl(base + ADPLLJ_STATUS) & 0x101) != 0x101)
-		;
+	while ((__raw_readl(base + ADPLLJ_STATUS) & 0x101) != 0x101);
+
+	/* Clear TINITZ */
 	read_clkctrl = __raw_readl(base + ADPLLJ_CLKCTRL);
 	__raw_writel((read_clkctrl & 0xfffffffe), (base + ADPLLJ_CLKCTRL));
-
 
 	/*
 	 * ref_clk = 20/(n + 1);
 	 * clkout_dco = ref_clk * m;
 	 * clk_out = clkout_dco/m2;
-	*/
+	 */
 
+	read_clkctrl = __raw_readl(base + ADPLLJ_CLKCTRL) & 0xffffe3ff;
 	__raw_writel(m2nval, (base + ADPLLJ_M2NDIV));
 	__raw_writel(mn2val, (base + ADPLLJ_MN2DIV));
+
+	/* Skip for modena(ADPLLS) */
+	if (MODENA_PLL_BASE != base) {
+		__raw_writel(sig_val, (base + ADPLLJ_FRACDIV));
+		__raw_writel((read_clkctrl | hs_mod), (base + ADPLLJ_CLKCTRL));
+	}
 
 	/* Load M2, N2 dividers of ADPLL */
 	__raw_writel(0x1, (base + ADPLLJ_TENABLEDIV));
@@ -505,19 +604,21 @@ static void pll_config(u32 base, u32 n, u32 m, u32 m2, u32 clkctrl_val)
 	__raw_writel(0x1, (base + ADPLLJ_TENABLE));
 	__raw_writel(0x0, (base + ADPLLJ_TENABLE));
 
-	read_clkctrl = __raw_readl(base + ADPLLJ_CLKCTRL);
+	/* configure CLKDCOLDOEN,CLKOUTLDOEN,CLKOUT Enable BITS */
+	read_clkctrl = __raw_readl(base + ADPLLJ_CLKCTRL) & 0xdfe5ffff;
+	if (MODENA_PLL_BASE != base)
+		__raw_writel((read_clkctrl | ADPLLJ_CLKCRTL_CLKDCO),
+						base + ADPLLJ_CLKCTRL);
 
-	if (MODENA_PLL_BASE == base)
-		__raw_writel((read_clkctrl & 0xff7fffff) | clkctrl_val,
-			base + ADPLLJ_CLKCTRL);
-	else
-		__raw_writel((read_clkctrl & 0xff7fe3ff) | clkctrl_val,
-			base + ADPLLJ_CLKCTRL);
+	/* Enable TINTZ and disable IDLE(PLL in Active & Locked Mode */
+	read_clkctrl = __raw_readl(base + ADPLLJ_CLKCTRL) & 0xff7fffff;
+	__raw_writel((read_clkctrl | 0x1), base + ADPLLJ_CLKCTRL);
+
 	/* Wait for phase and freq lock */
-	while ((__raw_readl(base + ADPLLJ_STATUS) & 0x600) != 0x600)
-		;
+	while ((__raw_readl(base + ADPLLJ_STATUS) & 0x600) != 0x600);
 
 }
+#endif
 
 /*
  * Enable the clks & power for perifs (TIMER1, UART0,...)
@@ -624,6 +725,7 @@ void prcm_init(u32 in_ddr)
 	/* Enable the control module */
 	__raw_writel(0x2, CM_ALWON_CONTROL_CLKCTRL);
 
+#ifdef CONFIG_SETUP_PLL
 	/* Setup the various plls */
 	audio_pll_config();
 	sata_pll_config();
@@ -642,6 +744,8 @@ void prcm_init(u32 in_ddr)
 	 *  enable the required peripherals
 	 */
 	per_clocks_enable();
+#endif
+
 }
 
 #ifdef CONFIG_DRIVER_TI_CPSW
@@ -1018,6 +1122,7 @@ static struct cpsw_platform_data cpsw_data = {
 	.control		= cpsw_control,
 	.phy_init		= phy_init,
 	.host_port_num		= 0,
+	.bd_ram_ofs		= 0x2000,
 };
 
 extern void cpsw_eth_set_mac_addr (const u_int8_t *addr);

@@ -87,22 +87,18 @@ static void data_macro_config(u32 macro_num, u32 emif, u32 rd_dqs_cs0,
 }
 #endif
 
+#ifdef CONFIG_SETUP_PLL
+static u32 pll_dco_freq_sel(u32 clk_in, u32 n, u32 m);
 static void pll_config(u32, u32, u32, u32, u32);
-#if 0
-static void pcie_pll_config(void);
-#endif
 static void audio_pll_config(void);
 static void sata_pll_config(void);
 static void modena_pll_config(void);
 static void l3_pll_config(void);
 static void ddr_pll_config(void);
 static void iss_pll_config(void);
-#if 0
-static void iva_pll_config(void);
-#endif
 static void dsp_pll_config(void);
 static void usb_pll_config(void);
-
+#endif
 static void unlock_pll_control_mmr(void);
 #ifdef CONFIG_DRIVER_TI_CPSW
 static void cpsw_pad_config(void);
@@ -184,6 +180,33 @@ int dram_init(void)
 	return 0;
 }
 
+#ifdef CONFIG_SERIAL_TAG
+/*  *********************************************************
+ *  * get_board_serial() - setup to pass kernel board serial
+ *  * returns: board serial number
+ *  **********************************************************
+ */
+void get_board_serial(struct tag_serialnr *serialnr)
+{
+	/* ToDo: read eeprom and return*/
+	serialnr->high = 0x0;
+	serialnr->low = 0x0;
+
+}
+#endif
+
+#ifdef CONFIG_REVISION_TAG
+/**********************************************************
+ * * get_board_rev() - setup to pass kernel board revision
+ * * returns: revision
+ * ********************************************************
+ */
+u32 get_board_rev(void)
+{
+	/* ToDo: read eeprom */
+	return 0x0;
+}
+#endif
 
 int misc_init_r(void)
 {
@@ -202,13 +225,18 @@ int misc_init_r(void)
 "@@                                                               @@",
 "@@                                                               @@",
 "@@                                                               @@",
-"@@            ###  ######   #######                              @@",
-"@@             #   #        #                                    @@",
-"@@             #   #        #         #####    #####             @@",
-"@@             #   #####    #####    #        #     #            @@",
-"@@        #    #        #   #        #        #     #            @@",
-"@@        #    #        #   #        #        #     #            @@",
-"@@         ####    #####    #######   #####    #####             @@",
+"@@                                                               @@",
+"@@                                                               @@",
+"@@     88888888888 8888888 .d8888b.   d888    d888               @@",
+"@@         888       888  d88P  Y88b d8888   d8888               @@",
+"@@         888       888  Y88b. d88P   888     888               @@",
+"@@         888       888    Y88888     888     888    888  888   @@",
+"@@         888       888  .d8P88Y8b.   888     888      Y8 8P    @@",
+"@@         888       888  888    888   888     888       88      @@",
+"@@         888       888  Y88b  d88P   888     888     .d8 8b.   @@",
+"@@         888     8888888  Y8888P  8888888  8888888   888 888   @@",
+"@@                                                               @@",
+"@@                                                               @@",
 "@@                                                               @@",
 "@@                                                               @@",
 "@@                                                               @@",
@@ -321,6 +349,8 @@ static void config_ti811x_ddr(void)
 	__raw_writel(DDR3_EMIF_REF_CTRL, EMIF4_0_SDRAM_REF_CTRL_SHADOW);
 }
 #endif
+
+#ifdef CONFIG_SETUP_PLL
 static void audio_pll_config()
 {
 	pll_config(AUDIO_PLL_BASE,
@@ -457,12 +487,35 @@ static void iva_pll_config()
 			IVA_M2, IVA_CLKCTRL);
 }
 #endif
+
+/*
+ * select the HS1 or HS2 for DCO Freq
+ * return : CLKCTRL
+ */
+static u32 pll_dco_freq_sel(u32 clk_in, u32 n, u32 m)
+{
+	u32 dco_clk = 0;
+
+	dco_clk = (clk_in / (n+1)) * m ;
+	if (dco_clk >= DCO_HS2_MIN && dco_clk < DCO_HS2_MAX)
+		return SELFREQDCO_HS2;
+	else if (dco_clk >= DCO_HS1_MIN && dco_clk < DCO_HS1_MAX)
+		return SELFREQDCO_HS1;
+	else
+		return -1;
+
+}
+
 /*
  * configure individual ADPLLJ
  */
 static void pll_config(u32 base, u32 n, u32 m, u32 m2, u32 clkctrl_val)
 {
 	u32 m2nval, mn2val, read_clkctrl = 0;
+
+	/* select DCO freq range for ADPLL_J */
+	if (MODENA_PLL_BASE != base)
+		clkctrl_val |= pll_dco_freq_sel(OSC_0_FREQ, n, m);
 
 	m2nval = (m2 << 16) | n;
 	mn2val = m;
@@ -506,6 +559,7 @@ static void pll_config(u32 base, u32 n, u32 m, u32 m2, u32 clkctrl_val)
 		;
 
 }
+#endif
 
 /*
  * Enable the clks & power for perifs (TIMER1, UART0,...)
@@ -620,29 +674,20 @@ void prcm_init(u32 in_ddr)
 	/* Enable the control module */
 	__raw_writel(0x2, CM_ALWON_CONTROL_CLKCTRL);
 
+#ifdef CONFIG_SETUP_PLL
 	/* Setup the various plls */
 	audio_pll_config();
-#if 0
-	sata_pll_config();
-	pcie_pll_config();
-#endif
 	modena_pll_config();
-#if 0
-	l3_pll_config();
-#endif
 	ddr_pll_config();
 	dsp_pll_config();
-#if 0
-	iva_pll_config();
-#endif
 	iss_pll_config();
 
 	usb_pll_config();
-
 	/*  With clk freqs setup to desired values,
 	 *  enable the required peripherals
 	 */
 	per_clocks_enable();
+#endif
 }
 
 #ifdef CONFIG_DRIVER_TI_CPSW
@@ -791,10 +836,10 @@ static struct nor_pad_config nor_pad_cfg[] = {
 		{GPMC_D13, MODE(1) | INPUT_EN | PULL_DIS},
 		{GPMC_D14, MODE(1) | INPUT_EN | PULL_DIS},
 		{GPMC_D15, MODE(1) | INPUT_EN | PULL_DIS},
-		{GPMC_A1, MODE(2) | PULL_UP_EN},
-		{GPMC_A2, MODE(2) | PULL_UP_EN},
-		{GPMC_A3, MODE(2) | PULL_UP_EN},
-		{GPMC_A4, MODE(2) | PULL_UP_EN},
+		{GPMC_A1, MODE(5) | PULL_UP_EN},
+		{GPMC_A2, MODE(5) | PULL_UP_EN},
+		{GPMC_A3, MODE(5) | PULL_UP_EN},
+		{GPMC_A4, MODE(5) | PULL_UP_EN},
 		{GPMC_A5, MODE(5) | PULL_UP_EN},
 		{GPMC_A6, MODE(5)},
 		{GPMC_A7, MODE(5)},
@@ -803,9 +848,9 @@ static struct nor_pad_config nor_pad_cfg[] = {
 		{GPMC_A10, MODE(5) | PULL_UP_EN},
 		{GPMC_A11, MODE(5)},
 		{GPMC_A12, MODE(5)},
-		{GPMC_A13, MODE(2) | PULL_UP_EN},
-		{GPMC_A14, MODE(2) | PULL_UP_EN},
-		{GPMC_A15, MODE(2)},
+		{GPMC_A13, MODE(5) | PULL_UP_EN},
+		{GPMC_A14, MODE(5) | PULL_UP_EN},
+		{GPMC_A15, MODE(5)},
 		{GPMC_A16, MODE(1)},
 		{GPMC_A17, MODE(1)},
 		{GPMC_A18, MODE(1)},
@@ -1014,6 +1059,7 @@ static struct cpsw_platform_data cpsw_data = {
 	.control		= cpsw_control,
 	.phy_init		= phy_init,
 	.host_port_num		= 0,
+	.bd_ram_ofs		= 0x2000,
 };
 
 extern void cpsw_eth_set_mac_addr(const u_int8_t *addr);

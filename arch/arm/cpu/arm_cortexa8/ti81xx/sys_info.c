@@ -46,12 +46,14 @@ u32 get_cpu_rev(void)
 	id = readl(DEVICE_ID);
 	rev = (id >> 28) & 0xF;
 
-#ifdef CONFIG_TI814X
+#if defined(CONFIG_TI814X) && !defined(CONFIG_TI811X) && !defined(CONFIG_TI813X)
 	/* PG2.1 devices should read 0x3 as chip rev
 	 * Some PG2.1 devices have 0xc as chip rev
 	 */
 	if (0x3 == rev || 0xc == rev)
 		return PG2_1;
+	else if (0x4 == rev)
+		return PG3_0;
 	else
 		return PG1_0;
 #endif
@@ -70,15 +72,6 @@ u32 get_cpu_type(void)
 	partnum = (id >> 12) & 0xffff;
 
 	return partnum;
-}
-
-/*************************************************************************
- * get_board_rev() - setup to pass kernel board revision information
- * returns:(bit[0-3] sub version, higher bit[7-4] is higher version)
- *************************************************************************/
-u32 get_board_rev(void)
-{
-	return 0x0;
 }
 
 /*************************************************************
@@ -121,7 +114,7 @@ u32 pg_val_ti816x(u32 pg1_val, u32 pg2_val)
 u32 pg_val_ti814x(u32 pg1_val, u32 pg2_val)
 {
 	/* PG2.1 devices should read 0x3 as chip rev */
-	if (PG2_1 == get_cpu_rev() || TI811X == get_cpu_type())
+	if (PG2_1 <= get_cpu_rev() || TI811X == get_cpu_type())
 		return pg2_val;
 	else
 		return pg1_val;
@@ -209,7 +202,8 @@ int print_cpuinfo (void)
 	}
 
 	if (rev < PG_END) {
-		char cpu_rev_str[5][4] = {"1.0", "1.1", "2.0", "2.1"}, *cpu_rev;
+		char cpu_rev_str[6][4] = {"1.0", "1.1", "2.0", "2.1", "3.0"};
+		char *cpu_rev;
 
 		cpu_rev = cpu_rev_str[rev];
 		printf("CPU:   Texas Instruments %s-%s rev %s\n",

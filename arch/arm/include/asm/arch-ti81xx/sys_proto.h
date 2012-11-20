@@ -35,6 +35,7 @@ enum cpu_rev {
 	PG1_1 = 1,
 	PG2_0 = 2,
 	PG2_1 = 3,
+	PG3_0 = 4,
 	PG_END
 };
 
@@ -46,6 +47,7 @@ void gpmc_set_cs_buswidth(u32, u32);
 void watchdog_init(void);
 void set_muxconf_regs(void);
 u32 get_cpu_rev(void);
+u32 get_cpu_type(void);
 u32 get_mem_type(void);
 u32 get_sysboot_value(void);
 u32 get_sysboot_bw(void);

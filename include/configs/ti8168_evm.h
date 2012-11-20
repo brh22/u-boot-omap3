@@ -151,6 +151,9 @@
 #define CONFIG_TI816X_TWO_EMIF		1
 #define CONFIG_MISC_INIT_R		1
 
+#define CONFIG_SERIAL_TAG		1
+#define CONFIG_REVISION_TAG		1
+
 /* Only one the following two options (DDR3/DDR2) should be enabled */
 #define CONFIG_TI816X_EVM_DDR3                  /* Configure DDR3 in U-Boot */
 /*#define CONFIG_TI816X_EVM_DDR2*/		/* Configure DDR2 in U-Boot */
@@ -158,7 +161,7 @@
  * Size of malloc() pool
  */
 
-#define CONFIG_ENV_SIZE                 0x2000
+#define CONFIG_ENV_SIZE                 0x20000
 #define CONFIG_SYS_MALLOC_LEN           (CONFIG_ENV_SIZE + (32 * 1024))
 #define CONFIG_SYS_GBL_DATA_SIZE        128     /* size in bytes reserved for
 						initial data */
@@ -300,8 +303,10 @@ extern unsigned int boot_flash_type;
 /* ENV in SPI */
 #if defined(CONFIG_SPI_ENV)
 # undef CONFIG_ENV_IS_NOWHERE
+# undef CONFIG_ENV_SIZE
 # define CONFIG_ENV_IS_IN_SPI_FLASH	1
 # ifdef CONFIG_ENV_IS_IN_SPI_FLASH
+#define CONFIG_ENV_SIZE			0x2000 /*use a small env */
 #  define CONFIG_SYS_FLASH_BASE		(0)
 #  define SPI_FLASH_ERASE_SIZE		(4 * 1024) /* sector size of SPI flash */
 #  define CONFIG_SYS_ENV_SECT_SIZE	(2 * SPI_FLASH_ERASE_SIZE) /* env size */

@@ -17,6 +17,8 @@
 #ifndef _TI81XX_PCIE_COMMON_
 #define _TI81XX_PCIE_COMMON_
 
+#include <asm/io.h>
+
 #ifdef TI81XX_PCIE_DBG
 #define DEBUGF(fmt, ...) \
 	printf(fmt, ##__VA_ARGS__)
@@ -95,16 +97,14 @@
 #endif
 
 #define TI81XX_VENDORID         ((unsigned int)0x104C)
-#define TI8148_DEVICEID         ((unsigned int)0xB801)
 #define TI8168_DEVICEID         ((unsigned int)0xB800)
+#define TI8148_DEVICEID         ((unsigned int)0xB801)
+#define TI813X_DEVICEID         ((unsigned int)0xB802)
+
 #define MAGIC_NO                0x10101010
 
 #define TI81XX_PCIE_BASE                0x51000000
 #define TI81XX_CONTROL_BASE             0x48140000
-
-
-#define __raw_readl(a)          (*(volatile unsigned int *)(a))
-#define __raw_writel(a, v)      (*(volatile unsigned int *)(a) = (v))
 
 #define read_pcie_appl_reg(offset)      \
 	read_reg(TI81XX_PCIE_BASE + offset)
@@ -131,6 +131,8 @@
 			+ offset, v, mask)
 #define DEBUG_LTSSM
 
+/* Entry function for PCIe setup - defined in common pcie.c */
+int pcie_init(void);
 
 /* these register at offset 0x1000 from PCIE_BASE */
 #define VENDOR_DEVICE_ID                0x0
@@ -182,7 +184,7 @@ static inline unsigned int read_reg(unsigned int a)
 
 static inline void write_reg(unsigned int a, unsigned int v)
 {
-	__raw_writel(a, v);
+	__raw_writel(v, a);
 }
 
 static inline void delay_loop(volatile int count)
