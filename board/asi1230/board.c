@@ -151,6 +151,7 @@ static void pcie_pll_config(void);
 #endif
 static void audio_pll_config(void);
 static void video0_pll_config(void);
+static void video1_pll_config(void);
 static void sata_pll_config(void);
 static void modena_pll_config(void);
 static void l3_pll_config(void);
