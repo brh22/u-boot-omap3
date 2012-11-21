@@ -157,6 +157,9 @@ int print_cpuinfo (void)
 {
 	char *cpu_s, *sec_s;
 	int arm_freq, ddr_freq , rev;
+#ifdef CONFIG_TI814X
+	int dsp_freq=0, audio_freq=0, video0_freq=0, video1_freq=0;
+#endif
 #ifdef CONFIG_TI813X
 	int l3_freq, dss_freq, iva_freq, iss_freq;
 #endif
@@ -239,6 +242,12 @@ int print_cpuinfo (void)
 	/* clk_out  = ((OSC_0/ ( N+1 )) * M) / M2   */
 	arm_freq = ((OSC_0_FREQ / (MODENA_N + 1) * MODENA_M) / MODENA_M2);
 	ddr_freq = ((OSC_0_FREQ / (DDR_N + 1) * DDR_M) / DDR_M2);
+#ifdef CONFIG_TI814X
+	dsp_freq = ((OSC_0_FREQ / (DSP_N + 1) * DSP_M) / DSP_M2);
+	audio_freq = ((OSC_0_FREQ / (AUDIO_N + 1) * AUDIO_M) / AUDIO_M2);
+	video0_freq = ((OSC_0_FREQ / (VIDEO0_N + 1) * VIDEO0_M) / VIDEO0_M2);
+	video1_freq = ((OSC_0_FREQ / (VIDEO1_N + 1) * VIDEO1_M) / VIDEO1_M2);
+#endif
 #ifdef CONFIG_TI813X
 	l3_freq = ((OSC_0_FREQ / (L3_N + 1) * L3_M) / L3_M2);
 	dss_freq = ((OSC_0_FREQ / (DSS_N + 1) * DSS_M) / DSS_M2);
@@ -248,6 +257,12 @@ int print_cpuinfo (void)
 #endif
 	printf("       ARM Cortex A8 @ %dMHz\n", arm_freq);
 	printf("       DDR clk: %dMHz\n", ddr_freq);
+#ifdef CONFIG_TI814X
+	printf("       DSP clk: %dMHz\n", dsp_freq);
+	printf("       AUDIO clk: %dMHz\n", audio_freq);
+	printf("       VIDEO0 clk: %dMHz\n", video0_freq);
+	printf("       VIDEO1 clk: %dMHz\n", video1_freq);
+#endif
 #ifdef CONFIG_TI813X
 	printf("       L3 clk: %dMHz\n", l3_freq);
 	printf("       DSS clk: %dMHz\n", dss_freq);
