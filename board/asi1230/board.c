@@ -91,6 +91,18 @@ int is_eng_mode_enabled(void)
 	return 0;
 }
 
+void asi1230_peripheral_reset( int state )
+{
+	/* peripheral reset (RESETA-) is on GP0[6] and is active low */
+	/* set OE low, makingth epin an output */
+	u32 oe_reg_val = __raw_readl(GPIO0_BASE + GPIO_OE) & (~(1<<6));
+	__raw_writel(oe_reg_val, GPIO0_BASE + GPIO_OE);
+	if (0 == state)
+		__raw_writel((1<<6), GPIO0_BASE + GPIO_CLEARDATAOUT);
+	else
+		__raw_writel((1<<6), GPIO0_BASE + GPIO_SETDATAOUT);
+}
+
 /*  */
 
 static void cmd_macro_config(u32 ddr_phy, u32 inv_clk_out,
@@ -192,6 +204,11 @@ int board_init(void)
 {
 	u32 regVal;
 
+	/* set RESETA- low and then high again */
+	asi1230_peripheral_reset(0);
+	delay(0xFFFF);	/* measured 200us delay with a 600MHz ARM A8 clock */
+	asi1230_peripheral_reset(1);
+
 	/* setup RMII_REFCLK (CPTS_RFTCLK in TRM) to be sourced from
 	 * video1_pll so we can use video0 for audio clocks */
 	__raw_writel(CPTS_RFT_CLK_VIDEO1_PLL_OUT, RMII_REFCLK_SRC);
@@ -208,8 +225,7 @@ int board_init(void)
 	/* program GMII_SEL register for RGMII mode and
 	 * disable internal TX clock skew
 	 */
-	 if (PG2_1 == get_cpu_rev())
-		__raw_writel(0x33a, GMII_SEL);
+	__raw_writel(0x33a, GMII_SEL);
 
 	/* Get Timer and UART out of reset */
 
@@ -229,8 +245,47 @@ int board_init(void)
 
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_DRAM_1 + 0x100;
-	gpmc_init();
 
+	/* setup GPMC, CS0 for 8 bit async, non-multiplexed */
+	/*gpmc_init();*/
+	/*gpmc_set_cs_buswidth(GPMC_CS0, GPMC_BUS_WIDTH_8 );*/
+	{
+	struct gpmc *gpmc_cfg;
+	#define GPMC_CS0_BASEADDRESS 0x01000000	/* GPMC address from Sec 2.12.1 of DM814x DS */
+	gpmc_cfg = (struct gpmc *)GPMC_BASE;
+
+	/* global settings SGT - gotta love the magic numbers!!*/
+	writel(0x00000008, &gpmc_cfg->sysconfig);
+	writel(0x00000000, &gpmc_cfg->irqstatus);
+	writel(0x00000000, &gpmc_cfg->irqenable);
+	writel(0x00000000, &gpmc_cfg->config);
+
+	/* disable the config */
+	__raw_writel(0, &gpmc_cfg->cs[0].config7);
+	sdelay(1000);
+
+	/* setup the config */
+	writel(0, &gpmc_cfg->cs[0].config1);	/*8bit, async, non-multiplexed */
+	/* leave rest as defaults for now */
+	writel(0, &gpmc_cfg->cs[0].config2);
+	writel(0, &gpmc_cfg->cs[0].config3);
+	writel(0, &gpmc_cfg->cs[0].config4);
+	writel(0, &gpmc_cfg->cs[0].config5);
+	writel(0, &gpmc_cfg->cs[0].config6);
+
+	/* Enable the config */
+	writel((((GPMC_SIZE_16M & 0xF) << 8) | ((GPMC_CS0_BASEADDRESS >> 24) & 0x3F) |
+		(1 << 6)), &gpmc_cfg->cs[0].config7);
+	sdelay(2000);
+
+	/* test loop to see if we see anything on the GPMC
+	while(1)
+	{
+		__raw_writel(0, GPMC_CS0_BASEADDRESS );
+		__raw_writel(1, GPMC_CS0_BASEADDRESS );
+	}
+	*/
+	}
 	return 0;
 }
 
@@ -307,13 +362,13 @@ int misc_init_r(void)
 		setenv("preboot", "\0");
 		printf("Booting in engineering mode\n");
 		/* output mDDR settings for use in .gel script */
-		printf("mDDR_EMIF_TIM1 = 0x0%08x\n", mDDR_EMIF_TIM1); 
-		printf("mDDR_EMIF_TIM2 = 0x0%08x\n", mDDR_EMIF_TIM2); 
-		printf("mDDR_EMIF_TIM3 = 0x0%08x\n", mDDR_EMIF_TIM3); 
-		printf("mDDR_EMIF_REF_CTRL = 0x0%08x\n", mDDR_EMIF_REF_CTRL); 
-		printf("mDDR_EMIF_SDRAM_CONFIG = 0x0%08x\n", mDDR_EMIF_SDRAM_CONFIG); 
-		printf("mDDR_EMIF_SDRAM_CONFIG2 = 0x0%08x\n", mDDR_EMIF_SDRAM_CONFIG2); 
-		printf("mDDR_EMIF_SDRAM_ZQCR = 0x0%08x\n", mDDR_EMIF_SDRAM_ZQCR); 
+		printf("mDDR_EMIF_TIM1 = 0x0%08x\n", mDDR_EMIF_TIM1);
+		printf("mDDR_EMIF_TIM2 = 0x0%08x\n", mDDR_EMIF_TIM2);
+		printf("mDDR_EMIF_TIM3 = 0x0%08x\n", mDDR_EMIF_TIM3);
+		printf("mDDR_EMIF_REF_CTRL = 0x0%08x\n", mDDR_EMIF_REF_CTRL);
+		printf("mDDR_EMIF_SDRAM_CONFIG = 0x0%08x\n", mDDR_EMIF_SDRAM_CONFIG);
+		printf("mDDR_EMIF_SDRAM_CONFIG2 = 0x0%08x\n", mDDR_EMIF_SDRAM_CONFIG2);
+		printf("mDDR_EMIF_SDRAM_ZQCR = 0x0%08x\n", mDDR_EMIF_SDRAM_ZQCR);
 	}
 #ifndef DEBUG
 	else {
@@ -539,7 +594,7 @@ static void pll_config(u32 base, u32 n, u32 m, u32 m2, u32 clkctrl_val)
 		__raw_writel((read_clkctrl & 0xff7fffff) | clkctrl_val,
 			     base + ADPLLJ_CLKCTRL);
 	else
-		/* Clear IDLE and SELFREQDCO bits 
+		/* Clear IDLE and SELFREQDCO bits
 		 * typical clkctrl_val 0x801 sets HS2 DCO range and TINITZ
 		 */
 		__raw_writel((read_clkctrl & 0xff7fe3ff) | clkctrl_val,
@@ -710,7 +765,7 @@ void set_muxconf_regs(void)
 {
 	u32 pin_ctrl_addr = PIN_CTRL_BASE;
 
-	/* Generate the pinmux setup as code with macro expansion instead of storing an array because 
+	/* Generate the pinmux setup as code with macro expansion instead of storing an array because
 	 * set_muxconf_regs() is executed before relocation and the compiler can generate references
 	 * to data sections when initializing local variables on the stack.
 	 */
