@@ -434,20 +434,20 @@
     MUX_VAL(PINCNTL114, (IPU | DISABLED))	/* safe_mode */
     MUX_VAL(PINCNTL115, (IPU | DISABLED))	/* safe_mode */
     MUX_VAL(PINCNTL116, (IPU | DISABLED))	/* safe_mode */
-    MUX_VAL(PINCNTL117, (IPU | DISABLED))	/* safe_mode */
-    MUX_VAL(PINCNTL118, (IPU | DISABLED))	/* safe_mode */
-    MUX_VAL(PINCNTL119, (IPU | DISABLED))	/* safe_mode */
-    MUX_VAL(PINCNTL120, (IPU | DISABLED))	/* safe_mode */
-    MUX_VAL(PINCNTL121, (IPU | DISABLED))	/* safe_mode */
-    MUX_VAL(PINCNTL122, (IPU | DISABLED))	/* safe_mode */
-    MUX_VAL(PINCNTL123, (IPU | DISABLED))	/* safe_mode */
-    MUX_VAL(PINCNTL124, (IPU | DISABLED))	/* safe_mode */
-    MUX_VAL(PINCNTL125, (IPU | DISABLED))	/* safe_mode */
-    MUX_VAL(PINCNTL126, (IPU | DISABLED))	/* safe_mode */
-    MUX_VAL(PINCNTL127, (IPU | DISABLED))	/* safe_mode */
-    MUX_VAL(PINCNTL128, (IPU | DISABLED))	/* safe_mode */
-    MUX_VAL(PINCNTL129, (IPU | DISABLED))	/* safe_mode */
-    MUX_VAL(PINCNTL130, (IPU | DISABLED))	/* safe_mode */
+    MUX_VAL(PINCNTL117, (IPD | FCN2 )) 	/* GPMC_A[1]_MUX1 */\
+    MUX_VAL(PINCNTL118, (IPD | FCN2 )) 	/* GPMC_A[2]_MUX1 */\
+    MUX_VAL(PINCNTL119, (IPD | FCN2 )) 	/* GPMC_A[3]_MUX1 */\
+    MUX_VAL(PINCNTL120, (IPD | FCN2 )) 	/* GPMC_A[4]_MUX1 */\
+    MUX_VAL(PINCNTL121, (DISABLED )) 	/* safe_mode */\
+    MUX_VAL(PINCNTL122, (IPU | FCN1 )) 	/* GPMC_CS[0] */\
+    MUX_VAL(PINCNTL123, (IPU | FCN1 )) 	/* GPMC_CS[1] */\
+    MUX_VAL(PINCNTL124, (IPU | FCN1 )) 	/* GPMC_CS[2] */\
+    MUX_VAL(PINCNTL125, (IPU | FCN1 )) 	/* GPMC_CS[3] */\
+    MUX_VAL(PINCNTL126, (IPU | FCN1 )) 	/* GPMC_CS[4] */\
+    MUX_VAL(PINCNTL127, (IPU | DISABLED )) 	/* safe_mode */\
+    MUX_VAL(PINCNTL128, (IPU | DISABLED )) 	/* safe_mode */\
+    MUX_VAL(PINCNTL129, (IPU | FCN1 )) 	/* GPMC_OE_RE */\
+    MUX_VAL(PINCNTL130, (IPU | FCN1 )) 	/* GPMC_WE */\
     MUX_VAL(PINCNTL131, (IPD | DISABLED))	/* safe_mode */
     MUX_VAL(PINCNTL132, (IPD | DISABLED))	/* safe_mode */
     MUX_VAL(PINCNTL133, (IPU | DISABLED))	/* safe_mode */
