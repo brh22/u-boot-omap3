@@ -197,11 +197,23 @@ static inline void delay(unsigned long loops)
 #define CM_CLKOUT_CTL_DIV(ratio) (ratio << 3)
 #define CM_CLKOUT_CTL_ENABLE (1 << 7)
 
+#define ASI2416_MODULE_BASE 0x01000000	/* from sec 2.12.1 of DM814x DS */
+static u32 gpmc_asi2416_module[GPMC_MAX_REG] = {
+	0x00001000,	/* 16bit, async NOR like. non-mux addr */
+	0x000C0C01,	/* assert CS after 1 FCLK, deassert after 12 FCLK (FCLK=10ns?)*/
+	0x00080803,
+	0x0B020B02,	/* assert WE/RD after 2 FCLK, deassert after 11 FCLK */
+	0x041D1F1F,
+	0x1D0904C4, 
+	0x00000000
+};
+
 /*
  * Basic board specific setup
  */
 int board_init(void)
 {
+	u32 *gpmc_config;
 	u32 regVal;
 
 	/* set RESETA- low and then high again */
@@ -246,46 +258,31 @@ int board_init(void)
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_DRAM_1 + 0x100;
 
-	/* setup GPMC, CS0 for 8 bit async, non-multiplexed */
-	/*gpmc_init();*/
-	/*gpmc_set_cs_buswidth(GPMC_CS0, GPMC_BUS_WIDTH_8 );*/
-	{
-	struct gpmc *gpmc_cfg;
-	#define GPMC_CS0_BASEADDRESS 0x01000000	/* GPMC address from Sec 2.12.1 of DM814x DS */
-	gpmc_cfg = (struct gpmc *)GPMC_BASE;
+	/* setup GPMC, CS0..4 for 8 bit async, non-multiplexed access, for ASI2416 modules*/
+	gpmc_init();
+	gpmc_config = gpmc_asi2416_module;
+	enable_gpmc_cs_config(gpmc_config, &gpmc_cfg->cs[0],
+			ASI2416_MODULE_BASE, GPMC_SIZE_16M);
+	enable_gpmc_cs_config(gpmc_config, &gpmc_cfg->cs[1],
+			ASI2416_MODULE_BASE+0x01000000, GPMC_SIZE_16M);
+	enable_gpmc_cs_config(gpmc_config, &gpmc_cfg->cs[2],
+			ASI2416_MODULE_BASE+0x02000000, GPMC_SIZE_16M);
+	enable_gpmc_cs_config(gpmc_config, &gpmc_cfg->cs[3],
+			ASI2416_MODULE_BASE+0x03000000, GPMC_SIZE_16M);
+	enable_gpmc_cs_config(gpmc_config, &gpmc_cfg->cs[4],
+			ASI2416_MODULE_BASE+0x04000000, GPMC_SIZE_16M);
 
-	/* global settings SGT - gotta love the magic numbers!!*/
-	writel(0x00000008, &gpmc_cfg->sysconfig);
-	writel(0x00000000, &gpmc_cfg->irqstatus);
-	writel(0x00000000, &gpmc_cfg->irqenable);
-	writel(0x00000000, &gpmc_cfg->config);
-
-	/* disable the config */
-	__raw_writel(0, &gpmc_cfg->cs[0].config7);
-	sdelay(1000);
-
-	/* setup the config */
-	writel(0, &gpmc_cfg->cs[0].config1);	/*8bit, async, non-multiplexed */
-	/* leave rest as defaults for now */
-	writel(0, &gpmc_cfg->cs[0].config2);
-	writel(0, &gpmc_cfg->cs[0].config3);
-	writel(0, &gpmc_cfg->cs[0].config4);
-	writel(0, &gpmc_cfg->cs[0].config5);
-	writel(0, &gpmc_cfg->cs[0].config6);
-
-	/* Enable the config */
-	writel((((GPMC_SIZE_16M & 0xF) << 8) | ((GPMC_CS0_BASEADDRESS >> 24) & 0x3F) |
-		(1 << 6)), &gpmc_cfg->cs[0].config7);
-	sdelay(2000);
-
-	/* test loop to see if we see anything on the GPMC
+	#if 0
+	/* test loop to see if we see anything on the GPMC */
 	while(1)
 	{
-		__raw_writel(0, GPMC_CS0_BASEADDRESS );
-		__raw_writel(1, GPMC_CS0_BASEADDRESS );
+		/* 16bit accesses */
+		__raw_writew(0, ASI2416_MODULE_BASE );	/* CS0 */
+		__raw_writew(1, ASI2416_MODULE_BASE );
+		__raw_readw( ASI2416_MODULE_BASE );
+		__raw_writew(0, ASI2416_MODULE_BASE+0x01000000 );	/* CS1 */
 	}
-	*/
-	}
+	#endif
 	return 0;
 }
 
