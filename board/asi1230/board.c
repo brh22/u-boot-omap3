@@ -46,6 +46,9 @@ DECLARE_GLOBAL_DATA_PTR;
 #define GPIO_CLEARDATAOUT 0x190
 #define GPIO_SETDATAOUT 0x194
 
+extern void enable_gpmc_cs_config(const u32 *gpmc_config,
+		struct gpmc_cs *cs, u32 base, u32 size);
+
 /* Implement board specific LED API. LEDs are attached to GPIO0 pins from 0 to 3 */
 void __led_toggle(led_id_t mask)
 {
