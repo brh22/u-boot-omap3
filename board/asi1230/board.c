@@ -202,13 +202,13 @@ static inline void delay(unsigned long loops)
 
 #define ASI2416_MODULE_BASE 0x01000000	/* from sec 2.12.1 of DM814x DS */
 static u32 gpmc_asi2416_module[GPMC_MAX_REG] = {
-	0x00001000,	/* 16bit, async NOR like. non-mux addr */
-	0x000C0C01,	/* assert CS after 1 FCLK, deassert after 12 FCLK (FCLK=10ns?)*/
-	0x00080803,
-	0x0B020B02,	/* assert WE/RD after 2 FCLK, deassert after 11 FCLK */
-	0x041D1F1F,
-	0x1D0904C4, 
-	0x00000000
+	0x00001000,	/* CONFIG1 - 16bit, async NOR like. non-mux addr */
+	0x000B0B00,	/* CONFIG2 - CSONTIME=0, CSRDOFFTIME, CSWROFFTIME = 110ns*/
+	0x00000000,	/* CONFIG3 - ADV times all 0*/
+	0x0B000B00,	/* CONFIG4 - OEONTIME, WEONTIME=0ns, OEOFFTIME,WEOFFTIME=110ns */
+	0x000A0C0C,	/* CONFIG5 - RDCYCLETIME=120ns, WRCYCLETIME=120ns, RDACCESSTIME = 100ns*/
+	0x0A0004C4, 	/* CONFIG6 - WRACCESSTIME=100ns, CYCLE2CYCLEDELAY=40ns*/
+	0x00000000	/* CONFIG7 - start with CS disabled */
 };
 
 /*
