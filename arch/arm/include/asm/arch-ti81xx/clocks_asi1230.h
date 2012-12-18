@@ -33,7 +33,7 @@
 /* Video0 clock starts at 32*512*48kHz = ~786MHz - used to gen Audio 512Fs clock */
 #define VIDEO0_N	19
 #define VIDEO0_M	786
-#define VIDEO0_M2	64 /*256Fs clock for now until we move to revB h/w)*/
+#define VIDEO0_M2	32
 #define VIDEO0_CLKCTRL	0x801
 
 /* Video1 clock is 250MHz - used for RGMII */
