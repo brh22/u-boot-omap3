@@ -46,6 +46,9 @@ DECLARE_GLOBAL_DATA_PTR;
 #define GPIO_CLEARDATAOUT 0x190
 #define GPIO_SETDATAOUT 0x194
 
+extern void enable_gpmc_cs_config(const u32 *gpmc_config,
+		struct gpmc_cs *cs, u32 base, u32 size);
+
 /* Implement board specific LED API. LEDs are attached to GPIO0 pins from 0 to 3 */
 void __led_toggle(led_id_t mask)
 {
@@ -89,6 +92,18 @@ int is_eng_mode_enabled(void)
 		return 1;
 
 	return 0;
+}
+
+void asi1230_peripheral_reset( int state )
+{
+	/* peripheral reset (RESETA-) is on GP0[6] and is active low */
+	/* set OE low, makingth epin an output */
+	u32 oe_reg_val = __raw_readl(GPIO0_BASE + GPIO_OE) & (~(1<<6));
+	__raw_writel(oe_reg_val, GPIO0_BASE + GPIO_OE);
+	if (0 == state)
+		__raw_writel((1<<6), GPIO0_BASE + GPIO_CLEARDATAOUT);
+	else
+		__raw_writel((1<<6), GPIO0_BASE + GPIO_SETDATAOUT);
 }
 
 /*  */
@@ -185,12 +200,29 @@ static inline void delay(unsigned long loops)
 #define CM_CLKOUT_CTL_DIV(ratio) (ratio << 3)
 #define CM_CLKOUT_CTL_ENABLE (1 << 7)
 
+#define ASI2416_MODULE_BASE 0x01000000	/* from sec 2.12.1 of DM814x DS */
+static u32 gpmc_asi2416_module[GPMC_MAX_REG] = {
+	0x00001000,	/* CONFIG1 - 16bit, async NOR like. non-mux addr */
+	0x000F0F00,	/* CONFIG2 - CSONTIME=0, CSRDOFFTIME, CSWROFFTIME = 150ns*/
+	0x00000000,	/* CONFIG3 - ADV times all 0*/
+	0x0C000F00,	/* CONFIG4 - OEONTIME, WEONTIME=0ns, OEOFFTIME=150,WEOFFTIME=120ns */
+	0x000E1010,	/* CONFIG5 - RDCYCLETIME=160ns, WRCYCLETIME=160ns, RDACCESSTIME = 140ns*/
+	0x0E0004C4, 	/* CONFIG6 - WRACCESSTIME=140ns, CYCLE2CYCLEDELAY=40ns, BUSTURNAROUNDTIME=40ns*/
+	0x00000000	/* CONFIG7 - start with CS disabled */
+};
+
 /*
  * Basic board specific setup
  */
 int board_init(void)
 {
+	u32 *gpmc_config;
 	u32 regVal;
+
+	/* set RESETA- low and then high again */
+	asi1230_peripheral_reset(0);
+	delay(0xFFFF);	/* measured 200us delay with a 600MHz ARM A8 clock */
+	asi1230_peripheral_reset(1);
 
 	/* setup RMII_REFCLK (CPTS_RFTCLK in TRM) to be sourced from
 	 * video1_pll so we can use video0 for audio clocks */
@@ -208,8 +240,7 @@ int board_init(void)
 	/* program GMII_SEL register for RGMII mode and
 	 * disable internal TX clock skew
 	 */
-	 if (PG2_1 == get_cpu_rev())
-		__raw_writel(0x33a, GMII_SEL);
+	__raw_writel(0x33a, GMII_SEL);
 
 	/* Get Timer and UART out of reset */
 
@@ -229,8 +260,32 @@ int board_init(void)
 
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_DRAM_1 + 0x100;
-	gpmc_init();
 
+	/* setup GPMC, CS0..4 for 8 bit async, non-multiplexed access, for ASI2416 modules*/
+	gpmc_init();
+	gpmc_config = gpmc_asi2416_module;
+	enable_gpmc_cs_config(gpmc_config, &gpmc_cfg->cs[0],
+			ASI2416_MODULE_BASE, GPMC_SIZE_16M);
+	enable_gpmc_cs_config(gpmc_config, &gpmc_cfg->cs[1],
+			ASI2416_MODULE_BASE+0x01000000, GPMC_SIZE_16M);
+	enable_gpmc_cs_config(gpmc_config, &gpmc_cfg->cs[2],
+			ASI2416_MODULE_BASE+0x02000000, GPMC_SIZE_16M);
+	enable_gpmc_cs_config(gpmc_config, &gpmc_cfg->cs[3],
+			ASI2416_MODULE_BASE+0x03000000, GPMC_SIZE_16M);
+	enable_gpmc_cs_config(gpmc_config, &gpmc_cfg->cs[4],
+			ASI2416_MODULE_BASE+0x04000000, GPMC_SIZE_16M);
+
+	#if 0
+	/* test loop to see if we see anything on the GPMC */
+	while(1)
+	{
+		/* 16bit accesses */
+		__raw_writew(0, ASI2416_MODULE_BASE );	/* CS0 */
+		__raw_writew(1, ASI2416_MODULE_BASE );
+		__raw_readw( ASI2416_MODULE_BASE );
+		__raw_writew(0, ASI2416_MODULE_BASE+0x01000000 );	/* CS1 */
+	}
+	#endif
 	return 0;
 }
 
@@ -307,13 +362,13 @@ int misc_init_r(void)
 		setenv("preboot", "\0");
 		printf("Booting in engineering mode\n");
 		/* output mDDR settings for use in .gel script */
-		printf("mDDR_EMIF_TIM1 = 0x0%08x\n", mDDR_EMIF_TIM1); 
-		printf("mDDR_EMIF_TIM2 = 0x0%08x\n", mDDR_EMIF_TIM2); 
-		printf("mDDR_EMIF_TIM3 = 0x0%08x\n", mDDR_EMIF_TIM3); 
-		printf("mDDR_EMIF_REF_CTRL = 0x0%08x\n", mDDR_EMIF_REF_CTRL); 
-		printf("mDDR_EMIF_SDRAM_CONFIG = 0x0%08x\n", mDDR_EMIF_SDRAM_CONFIG); 
-		printf("mDDR_EMIF_SDRAM_CONFIG2 = 0x0%08x\n", mDDR_EMIF_SDRAM_CONFIG2); 
-		printf("mDDR_EMIF_SDRAM_ZQCR = 0x0%08x\n", mDDR_EMIF_SDRAM_ZQCR); 
+		printf("mDDR_EMIF_TIM1 = 0x0%08x\n", mDDR_EMIF_TIM1);
+		printf("mDDR_EMIF_TIM2 = 0x0%08x\n", mDDR_EMIF_TIM2);
+		printf("mDDR_EMIF_TIM3 = 0x0%08x\n", mDDR_EMIF_TIM3);
+		printf("mDDR_EMIF_REF_CTRL = 0x0%08x\n", mDDR_EMIF_REF_CTRL);
+		printf("mDDR_EMIF_SDRAM_CONFIG = 0x0%08x\n", mDDR_EMIF_SDRAM_CONFIG);
+		printf("mDDR_EMIF_SDRAM_CONFIG2 = 0x0%08x\n", mDDR_EMIF_SDRAM_CONFIG2);
+		printf("mDDR_EMIF_SDRAM_ZQCR = 0x0%08x\n", mDDR_EMIF_SDRAM_ZQCR);
 	}
 #ifndef DEBUG
 	else {
@@ -539,7 +594,7 @@ static void pll_config(u32 base, u32 n, u32 m, u32 m2, u32 clkctrl_val)
 		__raw_writel((read_clkctrl & 0xff7fffff) | clkctrl_val,
 			     base + ADPLLJ_CLKCTRL);
 	else
-		/* Clear IDLE and SELFREQDCO bits 
+		/* Clear IDLE and SELFREQDCO bits
 		 * typical clkctrl_val 0x801 sets HS2 DCO range and TINITZ
 		 */
 		__raw_writel((read_clkctrl & 0xff7fe3ff) | clkctrl_val,
@@ -710,7 +765,7 @@ void set_muxconf_regs(void)
 {
 	u32 pin_ctrl_addr = PIN_CTRL_BASE;
 
-	/* Generate the pinmux setup as code with macro expansion instead of storing an array because 
+	/* Generate the pinmux setup as code with macro expansion instead of storing an array because
 	 * set_muxconf_regs() is executed before relocation and the compiler can generate references
 	 * to data sections when initializing local variables on the stack.
 	 */
