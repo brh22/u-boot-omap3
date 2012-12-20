@@ -43,6 +43,19 @@
 #define STATUS_LED_BIT3         16
 #define STATUS_LED_STATE3       STATUS_LED_OFF
 #define STATUS_LED_PERIOD3      0
+#define STATUS_LED_BIT4         (1<<15)
+#define STATUS_LED_STATE4       STATUS_LED_OFF
+#define STATUS_LED_PERIOD4      0
+#define STATUS_LED_BIT5         (1<<16)
+#define STATUS_LED_STATE5       STATUS_LED_OFF
+#define STATUS_LED_PERIOD5      0
+#define STATUS_LED_BIT6         (1<<17)
+#define STATUS_LED_STATE6       STATUS_LED_OFF
+#define STATUS_LED_PERIOD6      0
+#define STATUS_LED_BIT7         (1<<18)
+#define STATUS_LED_STATE7       STATUS_LED_OFF
+#define STATUS_LED_PERIOD7      0
+
 /* Define board specific boot progress constants */
 #define BOOT_PROGRESS_HELLOWORLD        (0x8000 | 1)
 #define BOOT_PROGRESS_PASTDRAMINIT      (0x8000 | 2)

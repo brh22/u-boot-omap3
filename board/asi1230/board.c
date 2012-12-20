@@ -50,9 +50,9 @@ extern void enable_gpmc_cs_config(const u32 *gpmc_config,
 		struct gpmc_cs *cs, u32 base, u32 size);
 
 /* Implement board specific LED API. LED1..4 are attached to GPIO0[1..4] 
-and LED5..8 to GPIO0[15..18] */
+ * and LED5..8 to GPIO0[15..18]
+ */
 #define LED_MASK 	0x0007801E
-#define LED_5TO8_MASK 	0x00078000
 
 void __led_toggle(led_id_t mask)
 {
@@ -67,7 +67,6 @@ void __led_init(led_id_t mask, int state)
 	   then set the output enable register and proceed to set the state of the LED.
 	 */
 	mask &= LED_MASK;
-	mask |= LED_5TO8_MASK;	/* turn on LEDs 5..8 - these are exclusively for the DSP */
 	u32 oe_reg_val = __raw_readl(GPIO0_BASE + GPIO_OE) & (~mask);
 	__raw_writel(oe_reg_val, GPIO0_BASE + GPIO_OE);
 	__led_set(mask, state);
@@ -78,7 +77,6 @@ void __led_set(led_id_t mask, int state)
 	u32 o_reg_val = mask & LED_MASK;
 	/* LEDs are lit when the corresponding GPIO is driven low */
 	if (state != STATUS_LED_OFF){
-		o_reg_val |= LED_5TO8_MASK;	/* turn on LEDs 5..8 - these are exclusively for the DSP */
 		__raw_writel(o_reg_val, GPIO0_BASE + GPIO_CLEARDATAOUT);
 	}
 	else
@@ -104,7 +102,7 @@ int is_eng_mode_enabled(void)
 void asi1230_peripheral_reset( int state )
 {
 	/* peripheral reset (RESETA-) is on GP0[6] and is active low */
-	/* set OE low, makingthe pin an output */
+	/* set OE low, making the pin an output */
 	u32 oe_reg_val = __raw_readl(GPIO0_BASE + GPIO_OE) & (~(1<<6));
 	__raw_writel(oe_reg_val, GPIO0_BASE + GPIO_OE);
 	if (0 == state)
@@ -311,43 +309,48 @@ void show_boot_progress(int status)
 {
 
 	if (status == BOOT_PROGRESS_HELLOWORLD) {
-		/* Status LED API cannot be used before DRAM is initialized,
-		   so we call out backend directly
+		/* Status LED API cannot be used before DRAM is initialized
+		   *and* we are past relocation so we call our backend directly
 		 */
 		__led_init(STATUS_LED_BIT, STATUS_LED_ON);
 		__led_init(STATUS_LED_BIT1, STATUS_LED_ON);
 		__led_init(STATUS_LED_BIT2, STATUS_LED_ON);
 		__led_init(STATUS_LED_BIT3, STATUS_LED_ON);
+		__led_init(STATUS_LED_BIT4, STATUS_LED_ON);
+		__led_init(STATUS_LED_BIT5, STATUS_LED_ON);
+		__led_init(STATUS_LED_BIT6, STATUS_LED_ON);
+		__led_init(STATUS_LED_BIT7, STATUS_LED_ON);
 		return;
 	}
 
 	if (status == BOOT_PROGRESS_PASTDRAMINIT) {
-/* using these status_led functions here seems to cause weird behaviour with the LEDs ?? - Delio to check
-		status_led_set(0, STATUS_LED_ON);
-		status_led_set(1, STATUS_LED_OFF);
-		status_led_set(2, STATUS_LED_OFF);
-		status_led_set(3, STATUS_LED_OFF);
-*/
-		__led_set(STATUS_LED_BIT,  STATUS_LED_ON);
-		__led_set(STATUS_LED_BIT1, STATUS_LED_OFF);
-		__led_set(STATUS_LED_BIT2, STATUS_LED_OFF);
-		__led_set(STATUS_LED_BIT3, STATUS_LED_OFF);
+		/* Status LED API cannot be used before DRAM is initialized
+		   *and* we are past relocation so we call our backend directly
+		 */
+		__led_set(STATUS_LED_BIT,  STATUS_LED_OFF);
+		__led_set(STATUS_LED_BIT1, STATUS_LED_ON);
+		__led_set(STATUS_LED_BIT2, STATUS_LED_ON);
+		__led_set(STATUS_LED_BIT3, STATUS_LED_ON);
+		__led_set(STATUS_LED_BIT4, STATUS_LED_ON);
+		__led_set(STATUS_LED_BIT5, STATUS_LED_ON);
+		__led_set(STATUS_LED_BIT6, STATUS_LED_ON);
+		__led_set(STATUS_LED_BIT7, STATUS_LED_ON);
 		return;
 	}
 
 	if (status == BOOT_PROGRESS_PASTRELOC) {
 #ifdef CONFIG_TI814X_MIN_CONFIG
 		/* Turn on LED1 and turn off LED0 to indicate we are past relocation */
-		status_led_set(0, STATUS_LED_OFF);
-		status_led_set(1, STATUS_LED_ON);
-		status_led_set(2, STATUS_LED_OFF);
-		status_led_set(3, STATUS_LED_OFF);
-#else
-		/* Indicate we are running 2nd stage U-Boot */
-		status_led_set(0, STATUS_LED_OFF);
+		status_led_set(0, STATUS_LED_ON);
 		status_led_set(1, STATUS_LED_OFF);
 		status_led_set(2, STATUS_LED_ON);
-		status_led_set(3, STATUS_LED_OFF);
+		status_led_set(3, STATUS_LED_ON);
+#else
+		/* Indicate we are running 2nd stage U-Boot */
+		status_led_set(0, STATUS_LED_ON);
+		status_led_set(1, STATUS_LED_ON);
+		status_led_set(2, STATUS_LED_OFF);
+		status_led_set(3, STATUS_LED_ON);
 #endif
 		return;
 	}
