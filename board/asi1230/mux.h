@@ -361,10 +361,10 @@
     MUX_VAL(PINCNTL41, (IPU | DISABLED))	/* safe_mode */
     MUX_VAL(PINCNTL42, (IPU | DISABLED))	/* safe_mode */
     MUX_VAL(PINCNTL43, (IPD | DISABLED))	/* safe_mode */
-    MUX_VAL(PINCNTL44, (IPD | DISABLED))	/* safe_mode */
-    MUX_VAL(PINCNTL45, (IPD | DISABLED))	/* safe_mode */
-    MUX_VAL(PINCNTL46, (IPD | DISABLED))	/* safe_mode */
-    MUX_VAL(PINCNTL47, (IPD | DISABLED))	/* safe_mode */
+    MUX_VAL(PINCNTL44, (IPU | FCN8))		/* GP0[15] */
+    MUX_VAL(PINCNTL45, (IPU | FCN8))		/* GP0[16] */
+    MUX_VAL(PINCNTL46, (IPU | FCN8))		/* GP0[17] */
+    MUX_VAL(PINCNTL47, (IPU | FCN8))		/* GP0[18] */
     MUX_VAL(PINCNTL48, (IPD | DISABLED))	/* safe_mode */
     MUX_VAL(PINCNTL49, (IPD | DISABLED))	/* safe_mode */
     MUX_VAL(PINCNTL50, (IPD | DISABLED))	/* safe_mode */
@@ -473,12 +473,12 @@
     MUX_VAL(PINCNTL153, (IPD | DISABLED))	/* safe_mode */
     MUX_VAL(PINCNTL154, (IPD | DISABLED))	/* safe_mode */
     MUX_VAL(PINCNTL155, (IPD | DISABLED))	/* safe_mode */
-    MUX_VAL(PINCNTL156, (IPU | FCN8))	/* GP0[10]_MUX0 */
+    MUX_VAL(PINCNTL156, (IPU | DISABLED))	/* safe_mode */
     MUX_VAL(PINCNTL157, (IPD | FCN8))	/* GP0[11]_MUX0 */
-    MUX_VAL(PINCNTL158, (IPU | FCN8))	/* GP0[12]_MUX0 */
-    MUX_VAL(PINCNTL159, (IPU | FCN8))	/* GP0[13]_MUX0 */
+    MUX_VAL(PINCNTL158, (IPD | FCN8))	/* GP0[12]_MUX0 */
+    MUX_VAL(PINCNTL159, (IPD | FCN8))	/* GP0[13]_MUX0 */
     MUX_VAL(PINCNTL160, (IPD | FCN8))	/* GP0[14]_MUX0 */
-    MUX_VAL(PINCNTL161, (IPD | FCN8))	/* GP0[15]_MUX0 */
+    MUX_VAL(PINCNTL161, (IPD | DISABLED))	/* safe_mode */
     MUX_VAL(PINCNTL162, (IPD | DISABLED))	/* safe_mode */
     MUX_VAL(PINCNTL163, (IPD | DISABLED))	/* safe_mode */
     MUX_VAL(PINCNTL164, (IPU | DISABLED))	/* safe_mode */
