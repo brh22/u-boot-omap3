@@ -320,7 +320,7 @@ extern unsigned int boot_flash_type;
 /* SPI support */
 #ifdef CONFIG_SPI
 #define CONFIG_OMAP3_SPI
-#define CONFIG_OMAP3_SPI_REVERSE_DATAPINS
+/*#define CONFIG_OMAP3_SPI_REVERSE_DATAPINS*/
 #define CONFIG_MTD_DEVICE
 #define CONFIG_SPI_FLASH
 #define CONFIG_SPI_FLASH_STMICRO
