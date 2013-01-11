@@ -233,7 +233,15 @@ int board_init(void)
 	 * video1_pll so we can use video0 for audio clocks */
 	__raw_writel(CPTS_RFT_CLK_VIDEO1_PLL_OUT, RMII_REFCLK_SRC);
 
-	/* Note TRM (SPRUGZ8A 14 November 2011 – Revised February 2012)
+	/* set CLKOUT_MUX register so that:
+	 * CLKOUT0 is SYSCLK (used to output Video 0 PLL for audio clock)
+	 * CLKOUT1 is ISS PLL out (used to generate 25MHz for the ethernet PHY)
+	*/
+	__raw_writel(0x00030000, CLKOUT_MUX);
+
+	/* Source CLKOUT0 from SYSCLK-VIDEO0 PLL
+	 *
+	 * Note TRM (SPRUGZ8A 14 November 2011 – Revised February 2012)
 	 * description of CLKOUTDIV field (2.9.3.1 CM_CLKOUT_CTRL, page 535)
 	 * is incorrect - ratio is (CLKOUTDIV+1). Ranges between 1..8
 	 *
@@ -569,6 +577,12 @@ static void iva_pll_config()
 	pll_config(IVA_PLL_BASE, IVA_N, IVA_M, IVA_M2, IVA_CLKCTRL);
 }
 
+static void dss_pll_config()
+{
+	pll_config(DSS_PLL_BASE, DSS_N, DSS_M, DSS_M2, DSS_CLKCTRL);
+}
+
+
 /*
  * configure individual ADPLLJ
  */
@@ -745,8 +759,8 @@ void prcm_init(u32 in_ddr)
 	dsp_pll_config();
 	iva_pll_config();
 	iss_pll_config();
-
 	usb_pll_config();
+	dss_pll_config();	/* used to gen 25MHz on CLKOUT1 for ethernet PHY */
 
 	/*  With clk freqs setup to desired values,
 	 *  enable the required peripherals

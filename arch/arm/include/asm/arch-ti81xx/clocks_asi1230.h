@@ -23,14 +23,15 @@
 
 #define OSC_0_FREQ	20
 
-/* Put the pll config values over here */
+/* NOTE All PLLs must run at between 500 and 2000MHz */
+
 /* Audio clock is 250MHz - not currently used */
 #define AUDIO_N		19
 #define AUDIO_M		500
 #define AUDIO_M2	2
 #define AUDIO_CLKCTRL	0x801
 
-/* Video0 clock starts at 32*512*48kHz = ~786MHz - used to gen Audio 512Fs clock */
+/* Video0 clock starts at 786/32 = 24.5625MHz - used to gen Audio 512Fs clock */
 #define VIDEO0_N	19
 #define VIDEO0_M	786
 #define VIDEO0_M2	32
@@ -42,20 +43,22 @@
 #define VIDEO1_M2	2
 #define VIDEO1_CLKCTRL	0x801
 
+/* Modena (ARM) PLL = 20/(1+1)*60 = 600MHz */
 #define MODENA_N	0x1
 #define MODENA_M	0x3C
 #define MODENA_M2	1
 #define MODENA_CLKCTRL	0x1
 
+/* Layer 3 bus PLL */
 #define L3_N		19
 #define L3_M		(pg_val_ti814x(880, 800))
 #define L3_M2		4
 #define L3_CLKCTRL	0x801
 
-/* mDDR clock is 20 / (19+1) * 333 / 2 ~= 166MHz */
+/* mDDR clock is 20 / (19+1) * 666 / 4 ~= 166MHz */
 #define DDR_N		19
-#define DDR_M		333
-#define DDR_M2		2
+#define DDR_M		666
+#define DDR_M2		4
 #define DDR_CLKCTRL	0x801
 
 /* DSP clock is 20 / (19+1) * 500 / 1 = 500MHz */
@@ -64,21 +67,26 @@
 #define DSP_M2		1
 #define DSP_CLKCTRL	0x801
 
-#define DSS_N		19
-#define DSS_M		(pg_val_ti814x(800, 800))
-#define DSS_M2		4
+/* DSS (HDVPSS) clock is 20 / (0+1) * 25 / 10 = 50MHz 
+ * (which is divded by two to get 25MHz for ethernet PHY*/
+#define DSS_N		0
+#define DSS_M		25
+#define DSS_M2		10
 #define DSS_CLKCTRL	0x801
 
+/* IVA (HDVICP2) PLL */
 #define IVA_N		19
 #define IVA_M		(pg_val_ti814x(612, 612))
 #define IVA_M2		2
 #define IVA_CLKCTRL	0x801
 
+/* ISS Imaging Subsystem PLL*/
 #define ISS_N		19
 #define ISS_M		800
 #define ISS_M2		(pg_val_ti814x(2, 2))
 #define ISS_CLKCTRL	0x801
 
+/* USB PLL = 960MHz */
 #define USB_N		19
 #define USB_M		960
 #define USB_M2		(pg_val_ti814x(1, 5))

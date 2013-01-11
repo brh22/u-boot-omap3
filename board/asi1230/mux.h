@@ -444,7 +444,7 @@
     MUX_VAL(PINCNTL124, (IPU | FCN1 )) 	/* GPMC_CS[2] */\
     MUX_VAL(PINCNTL125, (IPU | FCN1 )) 	/* GPMC_CS[3] */\
     MUX_VAL(PINCNTL126, (IPU | FCN1 )) 	/* GPMC_CS[4] */\
-    MUX_VAL(PINCNTL127, (IPU | DISABLED )) 	/* safe_mode */\
+    MUX_VAL(PINCNTL127, (IPU | FCN5 )) 	/* CLKOUT1 */\
     MUX_VAL(PINCNTL128, (IPU | DISABLED )) 	/* safe_mode */\
     MUX_VAL(PINCNTL129, (IPU | FCN1 )) 	/* GPMC_OE_RE */\
     MUX_VAL(PINCNTL130, (IPU | FCN1 )) 	/* GPMC_WE */\
