@@ -25,6 +25,28 @@
 
 /* NOTE All PLLs must run at between 500 and 2000MHz */
 
+/* Modena (ARM) PLL = 20/(1+1)*60 = 600MHz */
+#define MODENA_N	0x1
+#define MODENA_M	0x3C /*600MHz*/
+/*#define MODENA_M	0x1E 300MHz */
+/*#define MODENA_M	0x48 720MHz */
+#define MODENA_M2	1
+#define MODENA_CLKCTRL	0x1
+
+/* DSP clock is 20 / (19+1) * 500 / 1 = 500MHz */
+#define DSP_N		19
+#define DSP_M		1000  /* 500 */
+/*#define DSP_M		500   250 */
+/*#define DSP_M		1200  600 */
+#define DSP_M2		2
+#define DSP_CLKCTRL	0x801
+
+/* mDDR clock is 20 / (19+1) * 666 / 4 ~= 166MHz */
+#define DDR_N		19
+#define DDR_M		666
+#define DDR_M2		4
+#define DDR_CLKCTRL	0x801
+
 /* Audio clock is 250MHz - not currently used */
 #define AUDIO_N		19
 #define AUDIO_M		500
@@ -43,29 +65,11 @@
 #define VIDEO1_M2	2
 #define VIDEO1_CLKCTRL	0x801
 
-/* Modena (ARM) PLL = 20/(1+1)*60 = 600MHz */
-#define MODENA_N	0x1
-#define MODENA_M	0x3C
-#define MODENA_M2	1
-#define MODENA_CLKCTRL	0x1
-
 /* Layer 3 bus PLL */
 #define L3_N		19
 #define L3_M		(pg_val_ti814x(880, 800))
 #define L3_M2		4
 #define L3_CLKCTRL	0x801
-
-/* mDDR clock is 20 / (19+1) * 666 / 4 ~= 166MHz */
-#define DDR_N		19
-#define DDR_M		666
-#define DDR_M2		4
-#define DDR_CLKCTRL	0x801
-
-/* DSP clock is 20 / (19+1) * 500 / 1 = 500MHz */
-#define DSP_N		19
-#define DSP_M		500
-#define DSP_M2		1
-#define DSP_CLKCTRL	0x801
 
 /* DSS (HDVPSS) clock is 20 / (0+1) * 25 / 10 = 50MHz 
  * (which is divded by two to get 25MHz for ethernet PHY*/
