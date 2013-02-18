@@ -180,6 +180,7 @@ static void dsp_pll_config(void);
 static void iss_pll_config(void);
 static void iva_pll_config(void);
 static void usb_pll_config(void);
+static void dss_pll_config(void);
 #endif
 
 static void unlock_pll_control_mmr(void);
