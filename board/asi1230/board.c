@@ -391,7 +391,7 @@ int misc_init_r(void)
 #ifdef CONFIG_TI814X_MIN_CONFIG
 	/* If eng mode is enabled do not execute preboot but rather bootdelay/console */
 	if (is_eng_mode_enabled()) {
-		setenv("preboot", "\0");
+		setenv("eng_mode", "1\0");
 		printf("Booting in engineering mode\n");
 		/* output mDDR settings for use in .gel script */
 		printf("mDDR_EMIF_TIM1 = 0x0%08x\n", mDDR_EMIF_TIM1);
@@ -417,6 +417,8 @@ int misc_init_r(void)
 #ifndef DEBUG
 	else {
 		gd->flags |= GD_FLG_SILENT;
+		setenv("bootdelay", "0\0");
+		setenv("eng_mode", "0\0");
 	}
 #endif /* DEBUG */
 #endif /* CONFIG_TI814X_MIN_CONFIG */
