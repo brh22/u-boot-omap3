@@ -85,6 +85,15 @@ void __led_set(led_id_t mask, int state)
 		__raw_writel(o_reg_val, GPIO0_BASE + GPIO_SETDATAOUT);
 }
 
+int is_factory_boot_enabled(void)
+{
+	/* Read GP1[4] to see if we should boot in eng mode */
+	int factory_boot = !(__raw_readl(GPIO1_BASE + GPIO_DATAIN) & (1 << 4));
+	if (factory_boot)
+		return 1;
+	return 0;
+}
+
 int is_eng_mode_enabled(void)
 {
 	/* Read UBOOTBY- GP0[5] to see if we should boot in eng mode */
@@ -387,6 +396,12 @@ int misc_init_r(void)
 	pcie_init();
 	return 0;
 #endif
+
+	if (is_factory_boot_enabled()) {
+		setenv("factory_boot", "1\0");
+	} else {
+		setenv("factory_boot", "0\0");
+	}
 
 #ifdef CONFIG_TI814X_MIN_CONFIG
 	/* If eng mode is enabled do not execute preboot but rather bootdelay/console */
