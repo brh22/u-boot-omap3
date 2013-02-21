@@ -225,10 +225,12 @@ int board_init(void)
 	u32 *gpmc_config;
 	u32 regVal;
 
+#ifdef CONFIG_TI814X_MIN_CONFIG
 	/* set RESETA- low and then high again */
 	asi1230_peripheral_reset(0);
 	delay(0xFFFF);	/* measured 200us delay with a 600MHz ARM A8 clock */
 	asi1230_peripheral_reset(1);
+#endif
 
 	/* setup RMII_REFCLK (CPTS_RFTCLK in TRM) to be sourced from
 	 * video1_pll so we can use video0 for audio clocks */
