@@ -334,10 +334,10 @@ extern unsigned int boot_flash_type;
 # define CONFIG_ENV_IS_IN_SPI_FLASH	1
 # ifdef CONFIG_ENV_IS_IN_SPI_FLASH
 #  define CONFIG_SYS_FLASH_BASE		(0)
-#  define SPI_FLASH_ERASE_SIZE		(512 * 1024) /* sector size of SPI flash */
+#  define SPI_FLASH_ERASE_SIZE		(64 * 1024) /* sector size of SPI flash */
 #  define CONFIG_SYS_ENV_SECT_SIZE	(1 * SPI_FLASH_ERASE_SIZE) /* env size */
 #  define CONFIG_ENV_SECT_SIZE		(CONFIG_SYS_ENV_SECT_SIZE)
-#  define CONFIG_ENV_OFFSET		(16 * SPI_FLASH_ERASE_SIZE)
+#  define CONFIG_ENV_OFFSET		(3 * SPI_FLASH_ERASE_SIZE)
 #  define CONFIG_ENV_ADDR		(CONFIG_ENV_OFFSET)
 #  define CONFIG_SYS_MAX_FLASH_SECT	(32) /* no of sectors in SPI flash */
 #  define CONFIG_SYS_MAX_FLASH_BANKS	(1)
