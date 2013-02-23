@@ -236,6 +236,8 @@ int board_init(void)
 	u32 *gpmc_config;
 	u32 regVal=0;
 
+	show_boot_progress(BOOT_PROGRESS_PASTRELOC);
+
 	/* read product family jumpers from GP1[0..2] */
 	product_family = __raw_readl(GPIO1_BASE + GPIO_DATAIN) & 0x7;
 
@@ -386,10 +388,8 @@ void show_boot_progress(int status)
 		status_led_set(0, STATUS_LED_ON);
 }
 
-int misc_init_r(void)
+int board_late_init(void)
 {
-	show_boot_progress(BOOT_PROGRESS_PASTRELOC);
-
 #if defined(CONFIG_TI81XX_PCIE_BOOT) && defined(CONFIG_TI814X_MIN_CONFIG)
 	extern int pcie_init(void);
 	printf("\nSetting up for pcie boot...\n");

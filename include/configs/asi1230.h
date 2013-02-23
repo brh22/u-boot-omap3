@@ -174,7 +174,7 @@
 #define CONFIG_SYS_GBL_DATA_SIZE	128	/* size in bytes reserved for
 						   initial data */
 
-#define CONFIG_MISC_INIT_R		1
+#define BOARD_LATE_INIT		1
 #define CONFIG_SYS_AUTOLOAD		"yes"
 #define CONFIG_CMD_CACHE
 #define CONFIG_CMD_ECHO
