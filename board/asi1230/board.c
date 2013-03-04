@@ -27,6 +27,10 @@
 #include <asm/arch/mmc_host_def.h>
 #include <status_led.h>
 #include <ns16550.h>
+#include <spi_flash.h>
+
+#include <mmc.h>
+#include <ext2fs.h>
 
 #ifdef CONFIG_DRIVER_TI_CPSW
 #include <net.h>
@@ -45,6 +49,33 @@ DECLARE_GLOBAL_DATA_PTR;
 #define GPIO_DATAOUT    0x13C
 #define GPIO_CLEARDATAOUT 0x190
 #define GPIO_SETDATAOUT 0x194
+
+#define NVMEMDATA_MAGIC (0xadb8e496)
+struct nvmem_data {
+	uint32_t magic;
+	uint32_t checksum;
+	uint32_t length;
+	uint32_t version;
+
+	uint32_t write_count;
+
+	uint16_t model;
+	char hw_rev1;
+	unsigned char hw_rev2;
+	uint32_t serial;
+
+	uint8_t active_part_num;
+	uint8_t avail_part_num[2];
+	uint32_t boot_flags;
+
+	uint8_t mac_addr_count;
+	char mac_addr1[6];
+	char mac_addr2[6];
+} __attribute__ ((__packed__));
+
+#ifndef CONFIG_SF_DEFAULT_MODE
+# define CONFIG_SF_DEFAULT_MODE		SPI_MODE_3
+#endif
 
 extern void enable_gpmc_cs_config(const u32 *gpmc_config,
 		struct gpmc_cs *cs, u32 base, u32 size);
@@ -388,8 +419,107 @@ void show_boot_progress(int status)
 		status_led_set(0, STATUS_LED_ON);
 }
 
+int load_ext2_file(char *addr, char *iface_name, int dev, int part, char *filename)
+{
+	int err = -1;
+	int part_length;
+	disk_partition_t info;
+	block_dev_desc_t *dev_desc = NULL;
+
+	struct mmc *mmc = find_mmc_device(dev);
+	if (!mmc)
+		goto exit_err;
+
+	mmc_init(mmc);
+
+	dev_desc = get_dev(iface_name, dev);
+	if (dev_desc==NULL) {
+		printf ("** Block device %s %d not supported\n", iface_name, dev);
+		goto exit_err;
+	}
+
+	if (get_partition_info(dev_desc, part, &info)) {
+		printf ("** Bad partition %d **\n", part);
+		goto exit_err;
+	}
+
+	if (strncmp((char *)info.type, BOOT_PART_TYPE, sizeof(info.type)) != 0) {
+		printf ("** Invalid partition type \"%.32s\""
+			" (expect \"" BOOT_PART_TYPE "\")\n",
+			info.type);
+		goto exit_err;
+	}
+
+	printf ("Loading file \"%s\" "
+		"from %s device %d:%d (%.32s)\n",
+		filename, iface_name, dev, part, info.name);
+
+	part_length = ext2fs_set_blk_dev(dev_desc, part);
+	if (part_length == 0) {
+		printf ("** Bad partition - %s %d:%d **\n", iface_name, dev, part);
+		goto exit_err;
+	}
+
+	if (!ext2fs_mount(part_length)) {
+		printf ("** Bad ext2 partition or disk - %s %d:%d **\n",
+			iface_name, dev, part);
+		goto exit_err;
+	}
+
+	int filelen = ext2fs_open(filename);
+	if (filelen < 0) {
+		printf("** File not found %s\n", filename);
+		goto exit_err;
+	}
+
+	if (ext2fs_read(addr, filelen) != filelen) {
+		printf("** Unable to read \"%s\" from %s %d:%d **\n",
+			filename, iface_name, dev, part);
+		goto exit_err;
+	}
+
+	err = 0;
+
+exit_err:
+	ext2fs_close();
+	return err;
+}
+
+int setenv_for_engboot(int part_num)
+{
+	run_command("setenv bootcmd 'mmc rescan 0; "
+		"ext2load mmc 0:2 0x80800000 /boot/u-boot.sd; "
+		"go 0x80800000'", 0);
+}
+
+int available_mem_mb(void)
+{
+	return PHYS_DRAM_1_SIZE / 0x100000;
+}
+
+int setenv_for_normalboot(int part_num)
+{
+	char *addr = (char *)0x80800000;
+	int err = load_ext2_file(addr, "mmc", 0, part_num, "/boot/boot.scr");
+	if (!err) {
+		source((ulong)addr, NULL);
+		char *var = getenv("reserve_mem");
+		if (var) {
+			long res_mem = simple_strtoul(var, NULL, 0);
+			char cmd[64];
+			sprintf(cmd, "setenv bootargs ${bootargs} mem=%ldM",
+				available_mem_mb() - res_mem);
+			run_command(cmd, 0);
+		}
+	}
+	return -1;
+}
+
 int board_late_init(void)
 {
+	int factory_boot;
+	char part_num_str[4];
+
 #if defined(CONFIG_TI81XX_PCIE_BOOT) && defined(CONFIG_TI814X_MIN_CONFIG)
 	extern int pcie_init(void);
 	printf("\nSetting up for pcie boot...\n");
@@ -397,16 +527,37 @@ int board_late_init(void)
 	return 0;
 #endif
 
-	if (is_factory_boot_enabled()) {
-		setenv("factory_boot", "1\0");
+	factory_boot = is_factory_boot_enabled();
+	if (factory_boot) {
+		setenv("factory_boot", "1");
 	} else {
-		setenv("factory_boot", "0\0");
+		setenv("factory_boot", "0");
 	}
+
+	/* Read boot partition from SPI flash */
+	struct spi_flash *flash;
+	struct nvmem_data nv_data = {0};
+	flash = spi_flash_probe(0, 0, CONFIG_SF_DEFAULT_SPEED,
+		CONFIG_SF_DEFAULT_MODE);
+	if (flash)
+		spi_flash_read(flash, CONFIG_ASI1230_NVMEM_DATA_OFS,
+			sizeof(struct nvmem_data), &nv_data);
+	if (nv_data.magic != NVMEMDATA_MAGIC)
+		nv_data.active_part_num = CONFIG_ASI1230_FACTORY_PARTNUM;
+	if (nv_data.active_part_num != nv_data.avail_part_num[0] &&
+		nv_data.active_part_num != nv_data.avail_part_num[1])
+		nv_data.active_part_num = CONFIG_ASI1230_FACTORY_PARTNUM;
+	if (nv_data.active_part_num < 2 || nv_data.active_part_num > 10)
+		nv_data.active_part_num = CONFIG_ASI1230_FACTORY_PARTNUM;
+	if (factory_boot)
+		nv_data.active_part_num = CONFIG_ASI1230_FACTORY_PARTNUM;
+	sprintf(part_num_str, "%d", nv_data.active_part_num);
+	setenv("bpart_num", part_num_str);
 
 #ifdef CONFIG_TI814X_MIN_CONFIG
 	/* If eng mode is enabled do not execute preboot but rather bootdelay/console */
 	if (is_eng_mode_enabled()) {
-		setenv("eng_mode", "1\0");
+		setenv("eng_mode", "1");
 		printf("Booting in engineering mode\n");
 		/* output mDDR settings for use in .gel script */
 		printf("mDDR_EMIF_TIM1 = 0x0%08x\n", mDDR_EMIF_TIM1);
@@ -416,6 +567,7 @@ int board_late_init(void)
 		printf("mDDR_EMIF_SDRAM_CONFIG = 0x0%08x\n", mDDR_EMIF_SDRAM_CONFIG);
 		printf("mDDR_EMIF_SDRAM_CONFIG2 = 0x0%08x\n", mDDR_EMIF_SDRAM_CONFIG2);
 		printf("mDDR_EMIF_SDRAM_ZQCR = 0x0%08x\n", mDDR_EMIF_SDRAM_ZQCR);
+		printf("Active boot part num: %d\n", nv_data.active_part_num);
 		/* display product family - which was read in board_init */
 		switch(product_family) {
 			case 1:
@@ -428,14 +580,16 @@ int board_late_init(void)
 				printf("Product family is undefined\n");
 				break;
 		}
-	}
+		setenv_for_engboot(nv_data.active_part_num);
+	} else {
 #ifndef DEBUG
-	else {
-		gd->flags |= GD_FLG_SILENT;
-		setenv("bootdelay", "0\0");
-		setenv("eng_mode", "0\0");
-	}
+		if (!factory_boot)
+			gd->flags |= GD_FLG_SILENT;
+		setenv("bootdelay", "0");
 #endif /* DEBUG */
+		setenv("eng_mode", "0");
+		setenv_for_normalboot(nv_data.active_part_num);
+	}
 #endif /* CONFIG_TI814X_MIN_CONFIG */
 
 	return 0;
