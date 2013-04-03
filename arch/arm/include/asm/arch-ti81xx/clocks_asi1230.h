@@ -53,10 +53,11 @@
 #define AUDIO_M2	2
 #define AUDIO_CLKCTRL	0x801
 
-/* Video0 clock starts at 786/32 = 24.5625MHz - used to gen Audio 512Fs clock */
+/* Video0 clock starts at 516/21 = 24.571MHz - used to gen Audio 512Fs clock */
+/* these value match what linux programs (minus the frac_m) for 48x512 */
 #define VIDEO0_N	19
-#define VIDEO0_M	786
-#define VIDEO0_M2	32
+#define VIDEO0_M	516
+#define VIDEO0_M2	21
 #define VIDEO0_CLKCTRL	0x801
 
 /* Video1 clock is 250MHz - used for RGMII */

@@ -49,6 +49,8 @@ DECLARE_GLOBAL_DATA_PTR;
 extern void enable_gpmc_cs_config(const u32 *gpmc_config,
 		struct gpmc_cs *cs, u32 base, u32 size);
 
+static u32 product_family=0;
+
 /* Implement board specific LED API. LED1..4 are attached to GPIO0[1..4] 
  * and LED5..8 to GPIO0[15..18]
  */
@@ -180,6 +182,7 @@ static void dsp_pll_config(void);
 static void iss_pll_config(void);
 static void iva_pll_config(void);
 static void usb_pll_config(void);
+static void dss_pll_config(void);
 #endif
 
 static void unlock_pll_control_mmr(void);
@@ -222,12 +225,17 @@ static u32 gpmc_asi2416_module[GPMC_MAX_REG] = {
 int board_init(void)
 {
 	u32 *gpmc_config;
-	u32 regVal;
+	u32 regVal=0;
 
+	/* read product family jumpers from GP1[0..2] */
+	product_family = __raw_readl(GPIO1_BASE + GPIO_DATAIN) & 0x7;
+
+#ifdef CONFIG_TI814X_MIN_CONFIG
 	/* set RESETA- low and then high again */
 	asi1230_peripheral_reset(0);
 	delay(0xFFFF);	/* measured 200us delay with a 600MHz ARM A8 clock */
 	asi1230_peripheral_reset(1);
+#endif
 
 	/* setup RMII_REFCLK (CPTS_RFTCLK in TRM) to be sourced from
 	 * video1_pll so we can use video0 for audio clocks */
@@ -393,6 +401,18 @@ int misc_init_r(void)
 		printf("mDDR_EMIF_SDRAM_CONFIG = 0x0%08x\n", mDDR_EMIF_SDRAM_CONFIG);
 		printf("mDDR_EMIF_SDRAM_CONFIG2 = 0x0%08x\n", mDDR_EMIF_SDRAM_CONFIG2);
 		printf("mDDR_EMIF_SDRAM_ZQCR = 0x0%08x\n", mDDR_EMIF_SDRAM_ZQCR);
+		/* display product family - which was read in board_init */
+		switch(product_family) {
+			case 1:
+				printf("Product family is ASI2610\n");
+				break;
+			case 2:
+				printf("Product family is ASI2620\n");
+				break;
+			default:
+				printf("Product family is undefined\n");
+				break;
+		}
 	}
 #ifndef DEBUG
 	else {
@@ -683,6 +703,12 @@ void per_clocks_enable(void)
 	/* GATINGRATIO 0x3: Functional clock is interface clock divided by 8 */
 	__raw_writel((0x3 << 1), GPIO0_BASE + GPIO_CTRL);
 
+	/* GPIO1 */
+	__raw_writel(0x102, CM_ALWON_GPIO_1_CLKCTRL);
+	while (__raw_readl(CM_ALWON_GPIO_1_CLKCTRL) != 0x102) ;
+	/* GATINGRATIO 0x3: Functional clock is interface clock divided by 8 */
+	__raw_writel((0x3 << 1), GPIO1_BASE + GPIO_CTRL);
+
 	/* SPI */
 	__raw_writel(0x2, CM_ALWON_SPI_CLKCTRL);
 	while (__raw_readl(CM_ALWON_SPI_CLKCTRL) != 0x2) ;
@@ -690,11 +716,13 @@ void per_clocks_enable(void)
 	/* I2C0 and I2C2 */
 	__raw_writel(0x2, CM_ALWON_I2C_0_CLKCTRL);
 	while (__raw_readl(CM_ALWON_I2C_0_CLKCTRL) != 0x2) ;
+
 	/* Ethernet */
 	__raw_writel(0x2, CM_ETHERNET_CLKSTCTRL);
 	__raw_writel(0x2, CM_ALWON_ETHERNET_0_CLKCTRL);
 	while ((__raw_readl(CM_ALWON_ETHERNET_0_CLKCTRL) & 0x30000) != 0) ;
 	__raw_writel(0x2, CM_ALWON_ETHERNET_1_CLKCTRL);
+
 	/* HSMMC */
 	__raw_writel(0x2, CM_ALWON_HSMMC_CLKCTRL);
 	while (__raw_readl(CM_ALWON_HSMMC_CLKCTRL) != 0x2) ;
