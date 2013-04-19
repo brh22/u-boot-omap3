@@ -488,7 +488,7 @@ exit_err:
 int setenv_for_engboot(int part_num)
 {
 	run_command("setenv bootcmd 'mmc rescan 0; "
-		"ext2load mmc 0:2 0x80800000 /boot/u-boot.sd; "
+		"ext2load mmc 0:${bpart_num} 0x80800000 /boot/u-boot.sd; "
 		"go 0x80800000'", 0);
 	return 0;
 }
@@ -508,8 +508,13 @@ int setenv_for_normalboot(int part_num)
 		if (var) {
 			long res_mem = simple_strtoul(var, NULL, 0);
 			char cmd[64];
+#ifdef CONFIG_TI814X_MIN_CONFIG
 			sprintf(cmd, "setenv bootargs ${bootargs} mem=%ldM",
 				available_mem_mb() - res_mem);
+#else
+			sprintf(cmd, "setenv bootargs ${bootargs} mem=%ldM S",
+				available_mem_mb() - res_mem);
+#endif /* CONFIG_TI814X_MIN_CONFIG */
 			run_command(cmd, 0);
 		}
 	}
@@ -591,6 +596,8 @@ int board_late_init(void)
 		setenv("eng_mode", "0");
 		setenv_for_normalboot(nv_data.active_part_num);
 	}
+#else
+	setenv_for_normalboot(nv_data.active_part_num);
 #endif /* CONFIG_TI814X_MIN_CONFIG */
 
 	return 0;

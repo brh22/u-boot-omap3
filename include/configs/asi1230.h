@@ -148,12 +148,13 @@
 # define CONFIG_MMC			1
 # define CONFIG_SPI			1
 # define CONFIG_I2C			1
+# define CONFIG_LOADADDR 0x81000000
 # define CONFIG_BOOTARGS "console=ttyO0,115200n8 rootwait root=/dev/mmcblk0p2 ro mem=48M earlyprink ip=off noinitrd init=linuxrc S"
 # define CONFIG_EXTRA_ENV_SETTINGS \
 	"verify=yes\0"
 
 # define CONFIG_BOOTCOMMAND \
-	"mmc rescan 0; ext2load mmc 0:2 0x81000000 /boot/uImage; bootm 0x81000000\0"
+	"mmc rescan 0; ext2load mmc 0:2 0x81000000 /boot/uImage; bootm 0x81000000"
 
 #endif /* CONFIG_TI814X_MIN_CONFIG */
 
