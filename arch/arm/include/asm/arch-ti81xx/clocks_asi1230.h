@@ -41,11 +41,17 @@
 #define DSP_M2		2
 #define DSP_CLKCTRL	0x801
 
-/* mDDR clock is 20 / (19+1) * 666 / 4 ~= 166MHz */
-#define DDR_N		19
-#define DDR_M		666
-#define DDR_M2		4
-#define DDR_CLKCTRL	0x801
+/* LPDDR clock is 20 / (19+1) * 666 / 4 ~= 166MHz */
+#define LPDDR_N		19
+#define LPDDR_M		666
+#define LPDDR_M2		4
+#define LPDDR_CLKCTRL	0x801
+
+/* DDR2 clock is 20 / (19+1) * 800 / 2 = 400MHz */
+#define DDR2_N		19
+#define DDR2_M		800
+#define DDR2_M2		2
+#define DDR2_CLKCTRL	0x801
 
 /* Audio clock is 250MHz - not currently used */
 #define AUDIO_N		19
@@ -72,7 +78,7 @@
 #define L3_M2		4
 #define L3_CLKCTRL	0x801
 
-/* DSS (HDVPSS) clock is 20 / (0+1) * 25 / 10 = 50MHz 
+/* DSS (HDVPSS) clock is 20 / (0+1) * 25 / 10 = 50MHz
  * (which is divded by two to get 25MHz for ethernet PHY*/
 #define DSS_N		0
 #define DSS_M		25

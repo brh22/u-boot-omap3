@@ -24,8 +24,8 @@
  *#define CONFIG_TI814X_NO_RUNTIME_PG_DETECT
  */
 
-/* Display CPU info */
-#define CONFIG_DISPLAY_CPUINFO          1
+/* Display CPU info
+#define CONFIG_DISPLAY_CPUINFO          1*/
 
 /* Use board specific LED API */
 #define CONFIG_STATUS_LED               1
@@ -216,8 +216,6 @@
  */
 #define CONFIG_NR_DRAM_BANKS	1	        /* we have 1 bank of DRAM */
 #define PHYS_DRAM_1			    0x80000000	/* DRAM Bank #1 */
-#define PHYS_DRAM_1_SIZE		0x4000000	/* 64MBytes */
-
 
 /**
  * Platform/Board specific defs

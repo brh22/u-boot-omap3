@@ -17,10 +17,10 @@
 #include <common.h>
 #include <asm/cache.h>
 #include <asm/arch/cpu.h>
-#include <asm/arch/hardware.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/mem.h>
+ #include <asm/arch/ddr_defs_ti814x.h>
 /* It would be better to #include <asm/arch/mmc.h> rather than <asm/arch/mmc_host_def.h>,
  * but right now the latter causes a macro redefinition warning.
  */
@@ -37,8 +37,6 @@
 #include <miiphy.h>
 #include <netdev.h>
 #endif /* CONFIG_DRIVER_TI_CPSW */
-
-#include "ddr_defs.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -77,12 +75,14 @@ struct nvmem_data {
 # define CONFIG_SF_DEFAULT_MODE		SPI_MODE_3
 #endif
 
+extern void config_asi1230_ddr2(void);
+extern void config_asi1230_lpddr(void);
 extern void enable_gpmc_cs_config(const u32 *gpmc_config,
 		struct gpmc_cs *cs, u32 base, u32 size);
 
-static u32 product_family=0;
+static u32 board_hw_id = 0;
 
-/* Implement board specific LED API. LED1..4 are attached to GPIO0[1..4] 
+/* Implement board specific LED API. LED1..4 are attached to GPIO0[1..4]
  * and LED5..8 to GPIO0[15..18]
  */
 #define LED_MASK 	0x0007801E
@@ -141,6 +141,13 @@ int is_eng_mode_enabled(void)
 	return 0;
 }
 
+/* asi1230_hw_id() must be called after GPIOs have been init-ed */
+u32 asi1230_hw_id(void)
+{
+	/* Read back HW ID from GP1[0..2] */
+	return __raw_readl(GPIO1_BASE + GPIO_DATAIN) & 0x7;
+}
+
 void asi1230_peripheral_reset( int state )
 {
 	/* peripheral reset (RESETA-) is on GP0[6] and is active low */
@@ -155,7 +162,7 @@ void asi1230_peripheral_reset( int state )
 
 /*  */
 
-static void cmd_macro_config(u32 ddr_phy, u32 inv_clk_out,
+void cmd_macro_config(u32 ddr_phy, u32 inv_clk_out,
 			     u32 ctrl_slave_ratio_cs0, u32 cmd_dll_lock_diff)
 {
 	u32 ddr_phy_base = (DDR_PHY0 == ddr_phy) ?
@@ -180,7 +187,7 @@ static void cmd_macro_config(u32 ddr_phy, u32 inv_clk_out,
 		     ddr_phy_base + CMD2_REG_PHY_DLL_LOCK_DIFF_0);
 }
 
-static void data_macro_config(u32 macro_num, u32 emif, u32 rd_dqs_cs0,
+void data_macro_config(u32 macro_num, u32 emif, u32 rd_dqs_cs0,
 			      u32 wr_dqs_cs0, u32 fifo_we_cs0, u32 wr_data_cs0)
 {
 	/* 0xA4 is size of each data macro mmr region.
@@ -217,7 +224,6 @@ static void video1_pll_config(void);
 static void sata_pll_config(void);
 static void modena_pll_config(void);
 static void l3_pll_config(void);
-static void ddr_pll_config(void);
 static void dsp_pll_config(void);
 static void iss_pll_config(void);
 static void iva_pll_config(void);
@@ -229,7 +235,7 @@ static void unlock_pll_control_mmr(void);
 /*
  * spinning delay to use before udelay works
  */
-static inline void delay(unsigned long loops)
+inline void asi1230_delay(unsigned long loops)
 {
 	__asm__ volatile ("1:\n" "subs %0, %1, #1\n"
 			  "bne 1b":"=r" (loops):"0"(loops));
@@ -259,6 +265,20 @@ static u32 gpmc_asi2416_module[GPMC_MAX_REG] = {
 	0x00000000	/* CONFIG7 - start with CS disabled */
 };
 
+u32 asi1230_dram_size(void)
+{
+	/* ID 0x01 has 64Mbytes */
+	if (board_hw_id == 0x1)
+		return 0x4000000;
+
+	/* ID 0x00 has 128Mbytes */
+	if (board_hw_id == 0x0)
+		return 0x8000000;
+
+	/* Default to 64Mbytes for unknown IDs */
+	return 0x4000000;
+}
+
 /*
  * Basic board specific setup
  */
@@ -269,13 +289,12 @@ int board_init(void)
 
 	show_boot_progress(BOOT_PROGRESS_PASTRELOC);
 
-	/* read product family jumpers from GP1[0..2] */
-	product_family = __raw_readl(GPIO1_BASE + GPIO_DATAIN) & 0x7;
+	board_hw_id = asi1230_hw_id();
 
 #ifdef CONFIG_TI814X_MIN_CONFIG
 	/* set RESETA- low and then high again */
 	asi1230_peripheral_reset(0);
-	delay(0xFFFF);	/* measured 200us delay with a 600MHz ARM A8 clock */
+	asi1230_delay(0xFFFF);	/* measured 200us delay with a 600MHz ARM A8 clock */
 	asi1230_peripheral_reset(1);
 #endif
 
@@ -359,7 +378,7 @@ int dram_init(void)
 {
 	/* Fill up board info */
 	gd->bd->bi_dram[0].start = PHYS_DRAM_1;
-	gd->bd->bi_dram[0].size = PHYS_DRAM_1_SIZE;
+	gd->bd->bi_dram[0].size = asi1230_dram_size();
 	return 0;
 }
 
@@ -495,7 +514,7 @@ int setenv_for_engboot(int part_num)
 
 int available_mem_mb(void)
 {
-	return PHYS_DRAM_1_SIZE / 0x100000;
+	return gd->bd->bi_dram[0].size / 0x100000;
 }
 
 int setenv_for_normalboot(int part_num)
@@ -565,27 +584,7 @@ int board_late_init(void)
 	if (is_eng_mode_enabled()) {
 		setenv("eng_mode", "1");
 		printf("Booting in engineering mode\n");
-		/* output mDDR settings for use in .gel script */
-		printf("mDDR_EMIF_TIM1 = 0x0%08x\n", mDDR_EMIF_TIM1);
-		printf("mDDR_EMIF_TIM2 = 0x0%08x\n", mDDR_EMIF_TIM2);
-		printf("mDDR_EMIF_TIM3 = 0x0%08x\n", mDDR_EMIF_TIM3);
-		printf("mDDR_EMIF_REF_CTRL = 0x0%08x\n", mDDR_EMIF_REF_CTRL);
-		printf("mDDR_EMIF_SDRAM_CONFIG = 0x0%08x\n", mDDR_EMIF_SDRAM_CONFIG);
-		printf("mDDR_EMIF_SDRAM_CONFIG2 = 0x0%08x\n", mDDR_EMIF_SDRAM_CONFIG2);
-		printf("mDDR_EMIF_SDRAM_ZQCR = 0x0%08x\n", mDDR_EMIF_SDRAM_ZQCR);
 		printf("Active boot part num: %d\n", nv_data.active_part_num);
-		/* display product family - which was read in board_init */
-		switch(product_family) {
-			case 1:
-				printf("Product family is ASI2610\n");
-				break;
-			case 2:
-				printf("Product family is ASI2620\n");
-				break;
-			default:
-				printf("Product family is undefined\n");
-				break;
-		}
 		setenv_for_engboot(nv_data.active_part_num);
 	} else {
 #ifndef DEBUG
@@ -601,102 +600,6 @@ int board_late_init(void)
 #endif /* CONFIG_TI814X_MIN_CONFIG */
 
 	return 0;
-}
-
-void config_asi1230_mddr(void)
-{
-	int macro, emif;
-
-	/*Enable the Power Domain Transition of L3 Fast Domain Peripheral */
-	__raw_writel(0x2, CM_DEFAULT_FW_CLKCTRL);
-	/*Enable the Power Domain Transition of L3 Fast Domain Peripheral */
-	__raw_writel(0x2, CM_DEFAULT_L3_FAST_CLKSTCTRL);
-	__raw_writel(0x2, CM_DEFAULT_EMIF_0_CLKCTRL);	/*Enable EMIF0 Clock */
-	/*__raw_writel(0x2, CM_DEFAULT_EMIF_1_CLKCTRL); Enable EMIF1 Clock*/
-	__raw_writel(0x2, CM_DEFAULT_DMM_CLKCTRL);
-
-	/*Poll for L3_FAST_GCLK  & DDR_GCLK  are active */
-	while ((__raw_readl(CM_DEFAULT_L3_FAST_CLKSTCTRL) & 0x300) != 0x300) ;
-	/*Poll for Module is functional */
-	while ((__raw_readl(CM_DEFAULT_EMIF_0_CLKCTRL)) != 0x2) ;
-	/* while ((__raw_readl(CM_DEFAULT_EMIF_1_CLKCTRL)) != 0x2); no EMIF1 */
-	while ((__raw_readl(CM_DEFAULT_DMM_CLKCTRL)) != 0x2) ;
-
-	/* No need to enable the memory clock inversion feature,
-	 * see 6.3.5.1 of TMS320DM814x TRM
-	 */
-	cmd_macro_config(DDR_PHY0, DDR3_PHY_INVERT_CLKOUT_OFF,
-			 DDR2_PHY_CTRL_SLAVE_RATIO_CS0_DEFINE,
-			 PHY_CMD0_DLL_LOCK_DIFF_DEFINE);
-
-	/* Init only PHY0 */
-	emif = 0;
-	for (macro = 0; macro <= DATA_MACRO_3; macro++) {
-		data_macro_config(macro, emif,
-				  DDR2_PHY_RD_DQS_CS0_DEFINE,
-				  DDR2_PHY_WR_DQS_CS0_DEFINE,
-				  DDR2_PHY_RD_DQS_GATE_CS0_DEFINE,
-				  DDR2_PHY_WR_DATA_CS0_DEFINE);
-	}
-
-	/* DDR IO CTRL config */
-	__raw_writel(DDR0_IO_CTRL_DEFINE, DDR0_IO_CTRL);
-
-	__raw_writel(__raw_readl(VTP0_CTRL_REG) | 0x00000040, VTP0_CTRL_REG);
-
-	/* Write 0 to CLRZ bit */
-	__raw_writel(__raw_readl(VTP0_CTRL_REG) & 0xfffffffe, VTP0_CTRL_REG);
-
-	/* Write 1 to CLRZ bit */
-	__raw_writel(__raw_readl(VTP0_CTRL_REG) | 0x00000001, VTP0_CTRL_REG);
-
-	/* Read VTP control registers & check READY bits */
-	while ((__raw_readl(VTP0_CTRL_REG) & 0x00000020) != 0x20) ;
-
-	/* Setup DMM */
-	__raw_writel(ASI1230_DMM_LISA_MAP__0, DMM_LISA_MAP__0);
-	__raw_writel(ASI1230_DMM_LISA_MAP__1, DMM_LISA_MAP__1);
-	__raw_writel(ASI1230_DMM_LISA_MAP__2, DMM_LISA_MAP__2);
-	__raw_writel(ASI1230_DMM_LISA_MAP__3, DMM_LISA_MAP__3);
-
-	while (__raw_readl(DMM_LISA_MAP__0) != ASI1230_DMM_LISA_MAP__0) ;
-	while (__raw_readl(DMM_LISA_MAP__1) != ASI1230_DMM_LISA_MAP__1) ;
-	while (__raw_readl(DMM_LISA_MAP__2) != ASI1230_DMM_LISA_MAP__2) ;
-	while (__raw_readl(DMM_LISA_MAP__3) != ASI1230_DMM_LISA_MAP__3) ;
-
-	__raw_writel(0x80000000, DMM_PAT_BASE_ADDR);
-
-	/*Program EMIF0 CFG Registers */
-	__raw_writel(mDDR_EMIF_READ_LATENCY, EMIF4_0_DDR_PHY_CTRL_1);
-	__raw_writel(mDDR_EMIF_READ_LATENCY, EMIF4_0_DDR_PHY_CTRL_1_SHADOW);
-	__raw_writel(mDDR_EMIF_TIM1, EMIF4_0_SDRAM_TIM_1);
-	__raw_writel(mDDR_EMIF_TIM1, EMIF4_0_SDRAM_TIM_1_SHADOW);
-	__raw_writel(mDDR_EMIF_TIM2, EMIF4_0_SDRAM_TIM_2);
-	__raw_writel(mDDR_EMIF_TIM2, EMIF4_0_SDRAM_TIM_2_SHADOW);
-	__raw_writel(mDDR_EMIF_TIM3, EMIF4_0_SDRAM_TIM_3);
-	__raw_writel(mDDR_EMIF_TIM3, EMIF4_0_SDRAM_TIM_3_SHADOW);
-	__raw_writel(mDDR_EMIF_SDRAM_CONFIG, EMIF4_0_SDRAM_CONFIG);
-	__raw_writel(mDDR_EMIF_SDRAM_CONFIG2, EMIF4_0_SDRAM_CONFIG2);
-
-	__raw_writel(mDDR_EMIF_REF_CTRL | DDR_EMIF_REF_TRIGGER,
-		     EMIF4_0_SDRAM_REF_CTRL);
-	__raw_writel(mDDR_EMIF_REF_CTRL, EMIF4_0_SDRAM_REF_CTRL_SHADOW);
-	__raw_writel(mDDR_EMIF_SDRAM_ZQCR, EMIF4_0_SDRAM_ZQCR);
-	__raw_writel(mDDR_EMIF_REF_CTRL, EMIF4_0_SDRAM_REF_CTRL);
-	__raw_writel(mDDR_EMIF_REF_CTRL, EMIF4_0_SDRAM_REF_CTRL_SHADOW);
-
-	__raw_writel(mDDR_EMIF_REF_CTRL, EMIF4_0_SDRAM_REF_CTRL);
-	__raw_writel(mDDR_EMIF_REF_CTRL, EMIF4_0_SDRAM_REF_CTRL_SHADOW);
-
-	/* The first write/read results in garbage. Is there something wrong with
-	   the dram controller's setup?
-
-	   In the meantime we write, read and then wait a little before moving on.
-	 */
-	*((ulong *) PHYS_DRAM_1) = 0xFFFFFFFF;
-	ulong tmp = *((ulong *) PHYS_DRAM_1);
-	tmp = 0;
-	delay(0xFFF);
 }
 
 #ifdef CONFIG_SETUP_PLL
@@ -719,21 +622,21 @@ static void sata_pll_config()
 {
 	__raw_writel(0xC12C003C, SATA_PLLCFG1);
 	__raw_writel(0x004008E0, SATA_PLLCFG3);
-	delay(0xFFFF);
+	asi1230_delay(0xFFFF);
 
 	__raw_writel(0x80000004, SATA_PLLCFG0);
-	delay(0xFFFF);
+	asi1230_delay(0xFFFF);
 
 	/* Enable PLL LDO */
 	__raw_writel(0x80000014, SATA_PLLCFG0);
-	delay(0xFFFF);
+	asi1230_delay(0xFFFF);
 
 	/* Enable DIG LDO, ENBGSC_REF, PLL LDO */
 	__raw_writel(0x80000016, SATA_PLLCFG0);
-	delay(0xFFFF);
+	asi1230_delay(0xFFFF);
 
 	__raw_writel(0xC0000017, SATA_PLLCFG0);
-	delay(0xFFFF);
+	asi1230_delay(0xFFFF);
 
 	/* wait for ADPLL lock */
 	while (((__raw_readl(SATA_PLLSTATUS) & 0x01) == 0x0)) ;
@@ -754,11 +657,6 @@ static void modena_pll_config()
 static void l3_pll_config()
 {
 	pll_config(L3_PLL_BASE, L3_N, L3_M, L3_M2, L3_CLKCTRL);
-}
-
-static void ddr_pll_config()
-{
-	pll_config(DDR_PLL_BASE, DDR_N, DDR_M, DDR_M2, DDR_CLKCTRL);
 }
 
 static void dsp_pll_config()
@@ -947,36 +845,6 @@ void per_clocks_enable(void)
 }
 
 /*
- * inits clocks for PRCM as defined in clocks.h
- */
-void prcm_init(u32 in_ddr)
-{
-	/* Enable the control module */
-	__raw_writel(0x2, CM_ALWON_CONTROL_CLKCTRL);
-
-#ifdef CONFIG_SETUP_PLL
-	/* Setup the various plls */
-	audio_pll_config();
-	video0_pll_config();
-	video1_pll_config();
-	sata_pll_config();
-	modena_pll_config();
-	l3_pll_config();
-	ddr_pll_config();
-	dsp_pll_config();
-	iva_pll_config();
-	iss_pll_config();
-	usb_pll_config();
-	dss_pll_config();	/* used to gen 25MHz on CLKOUT1 for ethernet PHY */
-
-	/*  With clk freqs setup to desired values,
-	 *  enable the required peripherals
-	 */
-	per_clocks_enable();
-#endif
-}
-
-/*
  * board specific muxing of pins
  */
 
@@ -1029,7 +897,7 @@ void unlock_pll_control_mmr()
 /*
  * early system init of muxing and clocks.
  */
-void s_init(u32 in_ddr)
+void s_init(u32 in_external_dram)
 {
 	/* TODO: Revisit enabling of I/D-cache in 1st stage */
 #if 0
@@ -1049,19 +917,58 @@ void s_init(u32 in_ddr)
 	l2_cache_enable();
 	unlock_pll_control_mmr();
 	/* Setup the PLLs and the clocks for the peripherals */
-	prcm_init(in_ddr);
-	/* Do the required pin-muxing before modules are setup
-	   (move this back to the beginning of board_init() if it is too early).
-	 */
+	{
+		/* Enable the control module */
+		__raw_writel(0x2, CM_ALWON_CONTROL_CLKCTRL);
+
+#ifdef CONFIG_SETUP_PLL
+		/* Setup the various plls */
+		audio_pll_config();
+		video0_pll_config();
+		video1_pll_config();
+		sata_pll_config();
+		modena_pll_config();
+		l3_pll_config();
+		dsp_pll_config();
+		iva_pll_config();
+		iss_pll_config();
+		usb_pll_config();
+
+		/* used to gen 25MHz on CLKOUT1 for ethernet PHY */
+		dss_pll_config();
+
+		/*  With clk freqs setup to desired values,
+		 *  enable the required peripherals
+		 */
+		per_clocks_enable();
+#endif
+	}
+	/* Do the required pin-muxing before modules are setup */
 	set_muxconf_regs();
 
 	/* Indicate to the outside world that we are alive */
 	show_boot_progress(BOOT_PROGRESS_HELLOWORLD);
 
-	if (!in_ddr)
-		config_asi1230_mddr();	/* Do DDR settings */
+#ifdef CONFIG_SETUP_PLL
+	/* Read back HW ID after peripheral and pinmux setup */
+	{
+		u32 hwid = asi1230_hw_id();
+		/* Init DDR PLL depending on the HW ID */
+		if (hwid == 0x01) {
+			/* ID = 1 (the only rev with LPDDR) */
+			pll_config(DDR_PLL_BASE, LPDDR_N, LPDDR_M, LPDDR_M2,
+				LPDDR_CLKCTRL);
+			config_asi1230_lpddr();
+		} else {
+			/* Assume anything else uses DDR2 */
+			pll_config(DDR_PLL_BASE, DDR2_N, DDR2_M, DDR2_M2,
+				DDR2_CLKCTRL);
+			config_asi1230_ddr2();
+		}
+	}
+#endif
 
-	/* mDDR is initialized */
+	/* external dram is initialized */
 	show_boot_progress(BOOT_PROGRESS_PASTDRAMINIT);
 }
 
