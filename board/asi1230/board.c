@@ -1025,32 +1025,12 @@ static void phy_init(char *name, int addr)
 		printf("failed to read bmcr\n");
 		return;
 	}
-	val |= PHY_BMCR_DPLX | PHY_BMCR_AUTON | PHY_BMCR_100_MBPS;
+	val |= PHY_BMCR_AUTON;
 	if (miiphy_write(name, addr, PHY_BMCR, val) != 0) {
 		printf("failed to write bmcr\n");
 		return;
 	}
 	miiphy_read(name, addr, PHY_BMCR, &val);
-
-	/* Setup GIG advertisement */
-	miiphy_read(name, addr, PHY_1000BTCR, &val);
-	val |= PHY_1000BTCR_1000FD;
-	val &= ~PHY_1000BTCR_1000HD;
-	miiphy_write(name, addr, PHY_1000BTCR, val);
-	miiphy_read(name, addr, PHY_1000BTCR, &val);
-
-	/* Setup general advertisement */
-	if (miiphy_read(name, addr, PHY_ANAR, &val) != 0) {
-		printf("failed to read anar\n");
-		return;
-	}
-	val |= (PHY_ANLPAR_10 | PHY_ANLPAR_10FD | PHY_ANLPAR_TX |
-		PHY_ANLPAR_TXFD);
-	if (miiphy_write(name, addr, PHY_ANAR, val) != 0) {
-		printf("failed to write anar\n");
-		return;
-	}
-	miiphy_read(name, addr, PHY_ANAR, &val);
 
 	/* Restart auto negotiation */
 	miiphy_read(name, addr, PHY_BMCR, &val);
