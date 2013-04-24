@@ -24,8 +24,8 @@
  *#define CONFIG_TI814X_NO_RUNTIME_PG_DETECT
  */
 
-/* Display CPU info */
-#define CONFIG_DISPLAY_CPUINFO          1
+/* Display CPU info
+#define CONFIG_DISPLAY_CPUINFO          1*/
 
 /* Use board specific LED API */
 #define CONFIG_STATUS_LED               1
@@ -61,6 +61,10 @@
 #define BOOT_PROGRESS_PASTDRAMINIT      (0x8000 | 2)
 #define BOOT_PROGRESS_PASTRELOC         (0x8000 | 3)
 
+/* Board info offset in SPI flash */
+# define CONFIG_ASI1230_NVMEM_DATA_OFS 0x20000
+# define CONFIG_ASI1230_FACTORY_PARTNUM 2
+
 /* In the 1st stage we have just 110K, so cut down wherever possible */
 #ifdef CONFIG_TI814X_MIN_CONFIG
 
@@ -72,9 +76,10 @@
 
 # define CONFIG_MMC			1
 # define CONFIG_SPI			1
+# define CONFIG_I2C			1
 
-# define CONFIG_BOOTARGS "console=ttyO0,115200n8 rootwait root=/dev/mmcblk0p2 rw mem=48M earlyprink ip=off noinitrd"
-# define CONFIG_PREBOOT "mmc rescan 0; fatload mmc 0 0x81000000 uImage; bootm 0x81000000"
+# define CONFIG_BOOTARGS "console=ttyO0,115200n8 rootwait root=/dev/mmcblk0p2 ro mem=48M earlyprink ip=off noinitrd init=linuxrc"
+# define CONFIG_LOADADDR 0x81000000
 
 # define CONFIG_CMD_MEMORY	/* for mtest */
 # define CONFIG_SYS_ALT_MEMTEST
@@ -86,15 +91,16 @@
 //# undef CONFIG_BOOTM_RTEMS
 //# undef CONFIG_SREC
 //# undef CONFIG_XYZMODEM
-# undef CONFIG_SYS_HUSH_PARSER
+//# define CONFIG_SYS_HUSH_PARSER		/* Use HUSH parser to allow command parsing */
+//# define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
 # define CONFIG_CMD_LOADB	/* loadb			*/
 # define CONFIG_CMD_LOADY	/* loady */
 # define CONFIG_SETUP_PLL
 # define CONFIG_TI814X_CONFIG_DDR
 # define CONFIG_ASI1230_CONFIG_MDDR
 
-# define CONFIG_ENV_SIZE		0x400
-# define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (8 * 1024))
+# define CONFIG_ENV_SIZE		0x2000
+# define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (32 * 1024))
 # define CONFIG_SYS_PROMPT		"ASI1230-MIN#"
 /* set to negative value for no autoboot */
 # define CONFIG_BOOTDELAY		3
@@ -113,8 +119,8 @@
 # elif defined(CONFIG_SD_BOOT)		/* Autoload the 2nd stage from SD */
 #  define CONFIG_MMC			1
 #  define CONFIG_EXTRA_ENV_SETTINGS \
-	"verify=yes\0" \
-	"bootcmd=mmc rescan 0; fatload mmc 0 0x80800000 u-boot.sd; go 0x80800000\0" \
+	"bootcmd=mmc rescan 0; ext2load mmc 0:2 ${loadaddr} /boot/uImage; bootm ${loadaddr}\0" \
+	"verify=yes\0"
 
 #elif defined(CONFIG_UART_BOOT)                /* stop in the min prompt */
 #define CONFIG_EXTRA_ENV_SETTINGS \
@@ -123,7 +129,7 @@
 
 # endif
 
-#else
+#else /* CONFIG_TI814X_MIN_CONFIG */
 
 # include <config_cmd_default.h>
 # define CONFIG_SKIP_LOWLEVEL_INIT	/* 1st stage would have done the basic init */
@@ -142,43 +148,29 @@
 # define CONFIG_MMC			1
 # define CONFIG_SPI			1
 # define CONFIG_I2C			1
-# define CONFIG_BOOTARGS "console=ttyO0,115200n8 rootwait root=/dev/mmcblk0p2 rw mem=48M earlyprink ip=off noinitrd"
+# define CONFIG_LOADADDR 0x81000000
+# define CONFIG_BOOTARGS "console=ttyO0,115200n8 rootwait root=/dev/mmcblk0p2 ro mem=48M earlyprink ip=off noinitrd init=linuxrc S"
 # define CONFIG_EXTRA_ENV_SETTINGS \
-	"verify=yes\0" \
-	"bootfile=uImage\0" \
-	"ramdisk_file=ramdisk.gz\0" \
-	"loadaddr=0x81000000\0" \
-	"script_addr=0x80900000\0" \
-	"loadbootscript=fatload mmc 0 ${script_addr} boot.scr\0" \
-	"bootscript= echo Running bootscript from MMC/SD to set the ENV...; " \
-		"source ${script_addr}\0" \
-	"alt_bootcmd=mmc rescan 0; fatload mmc 0 0x81000000 uImage; bootm 0x81000000\0"
+	"verify=yes\0"
 
 # define CONFIG_BOOTCOMMAND \
-	"if mmc rescan 0; then " \
-		"if run loadbootscript; then " \
-			"run bootscript; " \
-		"else " \
-			"echo In case ENV on MMC/SD is required; "\
-			"echo Please put a valid script named boot.scr on the card; " \
-			"run alt_bootcmd; " \
-		"fi; " \
-	"else " \
-		"echo Please set bootargs and bootcmd before booting the kernel; " \
-		"echo If that has already been done please ignore this message; "\
-	"fi"
+	"mmc rescan 0; ext2load mmc 0:2 0x81000000 /boot/uImage; bootm 0x81000000"
 
-
-#endif
+#endif /* CONFIG_TI814X_MIN_CONFIG */
 
 #define CONFIG_SYS_GBL_DATA_SIZE	128	/* size in bytes reserved for
 						   initial data */
 
-#define CONFIG_MISC_INIT_R		1
+#define BOARD_LATE_INIT		1
 #define CONFIG_SYS_AUTOLOAD		"yes"
+#define CONFIG_CMD_EXT2
 #define CONFIG_CMD_CACHE
 #define CONFIG_CMD_ECHO
-#define CONFIG_CMD_SAVEENV
+//#define CONFIG_CMD_SETEXPR
+//#define CONFIG_CMD_ITEST
+//#define CONFIG_CMD_RUN
+//#define CONFIG_CMD_SAVEENV
+#define CONFIG_CMD_SOURCE
 
 /*
  * Miscellaneous configurable options
@@ -224,8 +216,6 @@
  */
 #define CONFIG_NR_DRAM_BANKS	1	        /* we have 1 bank of DRAM */
 #define PHYS_DRAM_1			    0x80000000	/* DRAM Bank #1 */
-#define PHYS_DRAM_1_SIZE		0x4000000	/* 64MBytes */
-
 
 /**
  * Platform/Board specific defs
@@ -334,10 +324,10 @@ extern unsigned int boot_flash_type;
 # define CONFIG_ENV_IS_IN_SPI_FLASH	1
 # ifdef CONFIG_ENV_IS_IN_SPI_FLASH
 #  define CONFIG_SYS_FLASH_BASE		(0)
-#  define SPI_FLASH_ERASE_SIZE		(512 * 1024) /* sector size of SPI flash */
+#  define SPI_FLASH_ERASE_SIZE		(64 * 1024) /* sector size of SPI flash */
 #  define CONFIG_SYS_ENV_SECT_SIZE	(1 * SPI_FLASH_ERASE_SIZE) /* env size */
 #  define CONFIG_ENV_SECT_SIZE		(CONFIG_SYS_ENV_SECT_SIZE)
-#  define CONFIG_ENV_OFFSET		(16 * SPI_FLASH_ERASE_SIZE)
+#  define CONFIG_ENV_OFFSET		(3 * SPI_FLASH_ERASE_SIZE)
 #  define CONFIG_ENV_ADDR		(CONFIG_ENV_OFFSET)
 #  define CONFIG_SYS_MAX_FLASH_SECT	(32) /* no of sectors in SPI flash */
 #  define CONFIG_SYS_MAX_FLASH_BANKS	(1)
@@ -382,7 +372,7 @@ extern unsigned int boot_flash_type;
 
 # define CONFIG_CMD_I2C
 # define CONFIG_HARD_I2C			1
-# define CONFIG_SYS_I2C_SPEED		100000
+# define CONFIG_SYS_I2C_SPEED		3400000 /* OMAP_I2C_HIGH_SPEED */
 # define CONFIG_SYS_I2C_SLAVE		1
 # define CONFIG_SYS_I2C_BUS		0
 # define CONFIG_SYS_I2C_BUS_SELECT	1

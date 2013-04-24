@@ -306,7 +306,7 @@ void start_armboot (void)
 #endif /* CONFIG_SYS_NO_FLASH */
 
 #if !(defined(CONFIG_SYS_NO_ICACHE) && defined(CONFIG_SYS_NO_DCACHE))
-	addr = PHYS_DRAM_1 + PHYS_DRAM_1_SIZE;
+	addr = gd->bd->bi_dram[0].start + gd->bd->bi_dram[0].size;
 	/* reserve TLB table */
 	addr -= (4096 * 4);
 
