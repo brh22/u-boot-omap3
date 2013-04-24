@@ -15,6 +15,7 @@
  */
 
 #include <common.h>
+#include <exports.h>
 #include <asm/cache.h>
 #include <asm/arch/cpu.h>
 #include <asm/arch/sys_proto.h>
@@ -517,25 +518,55 @@ int available_mem_mb(void)
 	return gd->bd->bi_dram[0].size / 0x100000;
 }
 
+int set_memmap(void)
+{
+	char val[64];
+	char *endp = NULL;
+	unsigned int phy_start = gd->bd->bi_dram[0].start;
+	unsigned int phy_end = phy_start + gd->bd->bi_dram[0].size;
+	unsigned int resm_size = 0;
+	unsigned int resm_start = phy_start;
+	unsigned int total_phy = available_mem_mb() << 20;
+	char *resm_size_str = getenv("reserved_mem_size");
+	char *resm_start_str = getenv("reserved_mem_start");
+
+	if (resm_size_str) {
+		resm_size = ustrtoul(resm_size_str, &endp, 0);
+	}
+
+	if (!resm_size)
+		return 0; /* nothing to do, return */
+
+	if (resm_start_str) {
+		resm_start += ustrtoul(resm_start_str, &endp, 0);
+	}
+
+	if (resm_start == phy_start) {
+		sprintf(val, "mem=0x%x@0x%x", total_phy - resm_size,
+			resm_start + resm_size);
+	} else if (resm_start + resm_size == phy_start + phy_end) {
+		sprintf(val, "mem=0x%x", total_phy - resm_size);
+	} else {
+		sprintf(val, "mem=0x%x mem=0x%x@0x%x",
+			resm_start - phy_start,
+			total_phy - (resm_start - phy_start) - resm_size,
+			resm_start + resm_size);
+	}
+	return setenv("memmap", val);
+}
+
 int setenv_for_normalboot(int part_num)
 {
 	char *addr = (char *)0x80800000;
 	int err = load_ext2_file(addr, "mmc", 0, part_num, "/boot/boot.scr");
 	if (!err) {
 		source((ulong)addr, NULL);
-		char *var = getenv("reserve_mem");
-		if (var) {
-			long res_mem = simple_strtoul(var, NULL, 0);
-			char cmd[64];
+		set_memmap();
 #ifdef CONFIG_TI814X_MIN_CONFIG
-			sprintf(cmd, "setenv bootargs ${bootargs} mem=%ldM",
-				available_mem_mb() - res_mem);
+		run_command("setenv bootargs ${bootargs} ${memmap}", 0);
 #else
-			sprintf(cmd, "setenv bootargs ${bootargs} mem=%ldM S",
-				available_mem_mb() - res_mem);
+		run_command("setenv bootargs ${bootargs} ${memmap} S", 0);
 #endif /* CONFIG_TI814X_MIN_CONFIG */
-			run_command(cmd, 0);
-		}
 	}
 	return -1;
 }
