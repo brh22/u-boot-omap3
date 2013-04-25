@@ -25,20 +25,20 @@
 
 /* NOTE All PLLs must run at between 500 and 2000MHz */
 
-/* Modena (ARM) PLL = 20/(1+1)*60 = 600MHz */
+/* Modena (ARM) PLL = 20/(1+1)*72 = 720MHz */
 #define MODENA_N	0x1
-#define MODENA_M	0x3C /*600MHz*/
+/*#define MODENA_M	0x3C 600MHz*/
 /*#define MODENA_M	0x1E 300MHz */
-/*#define MODENA_M	0x48 720MHz */
+#define MODENA_M	0x48 /* 720MHz */
 #define MODENA_M2	1
 #define MODENA_CLKCTRL	0x1
 
-/* DSP clock is 20 / (19+1) * 500 / 1 = 500MHz */
+/* DSP clock is 20 / (19+1) * 600 / 1 = 500MHz */
 #define DSP_N		19
-#define DSP_M		1000  /* 500 */
-/*#define DSP_M		500   250 */
-/*#define DSP_M		1200  600 */
-#define DSP_M2		2
+/*#define DSP_M		500  500 */
+/*#define DSP_M		250  250 */
+#define DSP_M		600  /* 600 */
+#define DSP_M2		1
 #define DSP_CLKCTRL	0x801
 
 /* LPDDR clock is 20 / (19+1) * 666 / 4 ~= 166MHz */
