@@ -24,8 +24,8 @@
  *#define CONFIG_TI814X_NO_RUNTIME_PG_DETECT
  */
 
-/* Display CPU info
-#define CONFIG_DISPLAY_CPUINFO          1*/
+/* Display CPU info */
+#define CONFIG_DISPLAY_CPUINFO          1
 
 /* Use board specific LED API */
 #define CONFIG_STATUS_LED               1
