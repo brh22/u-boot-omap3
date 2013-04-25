@@ -23,6 +23,13 @@
 
 #define OSC_0_FREQ	20
 
+/* Dummy DDR defines to allow sys_info.c to compile.
+ * DDR clk will always display as 0MHz
+ */
+#define DDR_N		0x0
+#define DDR_M		0x0
+#define DDR_M2		0x1
+
 /* NOTE All PLLs must run at between 500 and 2000MHz */
 
 /* Modena (ARM) PLL = 20/(1+1)*72 = 720MHz */
